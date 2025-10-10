@@ -15,19 +15,19 @@ from uagents_core.contrib.protocols.chat import (
     EndSessionContent,
     chat_protocol_spec,
 )
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 from utils.config import config
 from utils.models import InvestmentRequest, RiskLevel, Chain
 import re
 
 
-# Create Portfolio Coordinator Agent
+# Create Portfolio Coordinator Agent (Local Mode with Endpoint)
 coordinator = Agent(
     name="yieldswarm-coordinator",
     seed=config.COORDINATOR_SEED,
     port=config.COORDINATOR_PORT,
-    mailbox=config.COORDINATOR_MAILBOX_KEY if config.COORDINATOR_MAILBOX_KEY else None,
+    endpoint=["http://127.0.0.1:8000/submit"],
 )
 
 # Initialize chat protocol
@@ -40,7 +40,7 @@ user_sessions = {}
 def create_text_chat(text: str) -> ChatMessage:
     """Create a chat message with text content"""
     return ChatMessage(
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         msg_id=uuid4(),
         content=[TextContent(type="text", text=text)],
     )
@@ -113,7 +113,7 @@ async def handle_message(ctx: Context, sender: str, msg: ChatMessage):
     await ctx.send(
         sender,
         ChatAcknowledgement(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             acknowledged_msg_id=msg.msg_id
         )
     )
@@ -123,7 +123,7 @@ async def handle_message(ctx: Context, sender: str, msg: ChatMessage):
         if isinstance(item, StartSessionContent):
             ctx.logger.info(f"Session started with {sender}")
             user_sessions[sender] = {
-                "started_at": datetime.utcnow(),
+                "started_at": datetime.now(timezone.utc),
                 "requests": []
             }
 

@@ -12,16 +12,16 @@ from utils.models import (
     PortfolioMetrics, Position, PerformanceUpdate,
     ExecutionReport, Chain, ProtocolType
 )
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import random
 
 
-# Create Performance Tracker Agent
+# Create Performance Tracker Agent (Local Mode with Endpoint)
 tracker_agent = Agent(
     name="yieldswarm-tracker",
     seed=config.TRACKER_SEED,
     port=config.TRACKER_PORT,
-    mailbox=config.TRACKER_MAILBOX_KEY if config.TRACKER_MAILBOX_KEY else None,
+    endpoint=["http://127.0.0.1:8005/submit"],
 )
 
 
@@ -40,7 +40,7 @@ class PerformanceAnalyzer:
             "total_value": 0.0,
             "total_invested": 0.0,
             "total_gas_costs": 0.0,
-            "created_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc)
         }
         self.historical_data[user_id] = []
         self.tax_events[user_id] = []
@@ -60,7 +60,7 @@ class PerformanceAnalyzer:
                     currency="ETH",
                     entry_apy=random.uniform(4.0, 15.0),
                     current_apy=random.uniform(4.0, 15.0),
-                    entry_date=datetime.utcnow()
+                    entry_date=datetime.now(timezone.utc)
                 )
                 self.portfolios[user_id]["positions"].append(position)
 
@@ -78,7 +78,7 @@ class PerformanceAnalyzer:
                 realized_apy=0.0,
                 total_gas_costs=0.0,
                 positions=[],
-                updated_at=datetime.utcnow()
+                updated_at=datetime.now(timezone.utc)
             )
 
         portfolio = self.portfolios[user_id]
@@ -110,7 +110,7 @@ class PerformanceAnalyzer:
             realized_apy=avg_apy,
             total_gas_costs=portfolio["total_gas_costs"],
             positions=portfolio["positions"],
-            updated_at=datetime.utcnow()
+            updated_at=datetime.now(timezone.utc)
         )
 
     def generate_tax_report(self, user_id: str) -> dict:
@@ -166,9 +166,9 @@ class PerformanceAnalyzer:
         for pos in metrics.positions:
             # Create MeTTa atom for actual performance
             metta_atom = f"""
-(= (Actual-Performance {pos.protocol} {pos.chain.value} {datetime.utcnow().strftime('%Y-%m-%d')})
+(= (Actual-Performance {pos.protocol} {pos.chain.value} {datetime.now(timezone.utc).strftime('%Y-%m-%d')})
    (APY {pos.current_apy:.2f})
-   (Duration-Days {(datetime.utcnow() - pos.entry_date).days})
+   (Duration-Days {(datetime.now(timezone.utc) - pos.entry_date).days})
    (Performance {'Exceeds' if pos.current_apy > pos.entry_apy else 'Below'}-Expectation))
 """
             updates.append(metta_atom)

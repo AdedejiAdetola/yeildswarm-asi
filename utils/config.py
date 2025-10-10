@@ -56,13 +56,15 @@ class Config:
     EXECUTION_PORT = 8004
     TRACKER_PORT = 8005
 
-    # Agent Addresses (will be set after agent creation)
-    COORDINATOR_ADDRESS = ""
-    SCANNER_ADDRESS = ""
-    METTA_ADDRESS = ""
-    STRATEGY_ADDRESS = ""
-    EXECUTION_ADDRESS = ""
-    TRACKER_ADDRESS = ""
+    # Agent Addresses (generated from seeds - deterministic)
+    # These addresses are calculated from the agent seeds above
+    # Run get_agent_addresses.py to regenerate if you change seeds
+    COORDINATOR_ADDRESS = "agent1q0432az04qafuj9qja7dtrf03n25dp0mmv5kjldjnuxyqllpjf0c22n7z0f"
+    SCANNER_ADDRESS = "agent1qw9dz27z0ydhm7g5d2k022wg3q32zjcr009p833ag94w9udgqfx9u746ck9"
+    METTA_ADDRESS = "agent1q29zr74zz6q3052glhefcuyv7n24c78lcrjd9lpav7npw48wx8k0k9xa4rh"
+    STRATEGY_ADDRESS = "agent1qtf787vn9h78j6quv4fs0axl4xw3s3r39el93rv88jlwz3uvugt02u4tsjy"
+    EXECUTION_ADDRESS = "agent1qd0av377w59qnel53yrjf29s2syy43ef4ld6haput6z020jqfjdwqysurfy"
+    TRACKER_ADDRESS = "agent1qg8chd6dzhpl6hfvgtqvx7q0yhmyx9phyewe6dus3lal8s67qa0sje3k0fk"
 
     # DeFi Protocols
     SUPPORTED_PROTOCOLS = [

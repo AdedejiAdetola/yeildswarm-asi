@@ -7,19 +7,19 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from uagents import Agent, Context
-from datetime import datetime
+from datetime import datetime, timezone
 from utils.config import config
 from utils.models import YieldOpportunity, Chain, ProtocolType, OpportunityData
 import asyncio
 import random
 
 
-# Create Chain Scanner Agent
+# Create Chain Scanner Agent (Local Mode with Endpoint)
 scanner = Agent(
     name="yieldswarm-scanner",
     seed=config.SCANNER_SEED,
     port=config.SCANNER_PORT,
-    mailbox=config.SCANNER_MAILBOX_KEY if config.SCANNER_MAILBOX_KEY else None,
+    endpoint=["http://127.0.0.1:8001/submit"],
 )
 
 
@@ -35,7 +35,7 @@ async def scan_ethereum(ctx: Context) -> list[YieldOpportunity]:
         apy=random.uniform(3.5, 5.5),
         tvl=1_500_000_000,
         risk_score=2.0,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     ))
 
     # Simulate Uniswap V3 monitoring
@@ -46,7 +46,7 @@ async def scan_ethereum(ctx: Context) -> list[YieldOpportunity]:
         apy=random.uniform(8.0, 15.0),
         tvl=3_200_000_000,
         risk_score=4.5,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     ))
 
     # Simulate Curve monitoring
@@ -57,7 +57,7 @@ async def scan_ethereum(ctx: Context) -> list[YieldOpportunity]:
         apy=random.uniform(4.0, 7.0),
         tvl=2_800_000_000,
         risk_score=2.5,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     ))
 
     return opportunities
@@ -75,7 +75,7 @@ async def scan_solana(ctx: Context) -> list[YieldOpportunity]:
         apy=random.uniform(15.0, 25.0),
         tvl=450_000_000,
         risk_score=6.0,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     ))
 
     # Simulate Solend monitoring
@@ -86,7 +86,7 @@ async def scan_solana(ctx: Context) -> list[YieldOpportunity]:
         apy=random.uniform(6.0, 12.0),
         tvl=280_000_000,
         risk_score=4.5,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     ))
 
     return opportunities
@@ -104,7 +104,7 @@ async def scan_bsc(ctx: Context) -> list[YieldOpportunity]:
         apy=random.uniform(10.0, 20.0),
         tvl=1_200_000_000,
         risk_score=5.0,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     ))
 
     # Simulate Venus monitoring
@@ -115,7 +115,7 @@ async def scan_bsc(ctx: Context) -> list[YieldOpportunity]:
         apy=random.uniform(5.0, 9.0),
         tvl=680_000_000,
         risk_score=4.0,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     ))
 
     return opportunities
@@ -133,7 +133,7 @@ async def scan_polygon(ctx: Context) -> list[YieldOpportunity]:
         apy=random.uniform(4.0, 6.5),
         tvl=620_000_000,
         risk_score=2.5,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     ))
 
     # Simulate QuickSwap monitoring
@@ -144,7 +144,7 @@ async def scan_polygon(ctx: Context) -> list[YieldOpportunity]:
         apy=random.uniform(7.0, 13.0),
         tvl=380_000_000,
         risk_score=4.0,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     ))
 
     return opportunities
@@ -162,7 +162,7 @@ async def scan_arbitrum(ctx: Context) -> list[YieldOpportunity]:
         apy=random.uniform(3.8, 5.8),
         tvl=540_000_000,
         risk_score=2.3,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     ))
 
     # Simulate GMX monitoring
@@ -173,7 +173,7 @@ async def scan_arbitrum(ctx: Context) -> list[YieldOpportunity]:
         apy=random.uniform(12.0, 18.0),
         tvl=420_000_000,
         risk_score=5.5,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     ))
 
     return opportunities
@@ -217,7 +217,7 @@ async def scan_all_chains(ctx: Context):
         # In production, broadcast to Strategy Engine
         # opportunity_data = OpportunityData(
         #     opportunities=all_opportunities,
-        #     timestamp=datetime.utcnow()
+        #     timestamp=datetime.now(timezone.utc)
         # )
         # await ctx.send(config.STRATEGY_ADDRESS, opportunity_data)
 

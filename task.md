@@ -1,8 +1,3 @@
-python3 -m venv venv
-  source venv/bin/activate
-  pip install -r requirements.txt
-
-
 About Artificial Superintelligence Alliance
 The Artificial Superintelligence (ASI) Alliance unites Fetch.ai, SingularityNET, Ocean Protocol, and CUDOS to build a decentralized, ethical, and accessible AI ecosystem. Together, we’re pioneering the future of artificial intelligence and Web3 innovation.
 

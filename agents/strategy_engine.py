@@ -12,17 +12,17 @@ from utils.models import (
     StrategyRequest, Strategy, AllocationAction,
     YieldOpportunity, InvestmentRequest, Chain
 )
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 import random
 
 
-# Create Strategy Engine Agent
+# Create Strategy Engine Agent (Local Mode with Endpoint)
 strategy_engine = Agent(
     name="yieldswarm-strategy",
     seed=config.STRATEGY_SEED,
     port=config.STRATEGY_PORT,
-    mailbox=config.STRATEGY_MAILBOX_KEY if config.STRATEGY_MAILBOX_KEY else None,
+    endpoint=["http://127.0.0.1:8003/submit"],
 )
 
 
@@ -86,7 +86,7 @@ class StrategyOptimizer:
             expected_apy=expected_apy,
             risk_score=risk_score,
             estimated_gas_cost=estimated_gas,
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
         )
 
     @staticmethod

@@ -12,17 +12,17 @@ from utils.models import (
     ApprovedStrategy, TransactionResult, ExecutionReport,
     AllocationAction, Chain
 )
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 import random
 
 
-# Create Execution Agent
+# Create Execution Agent (Local Mode with Endpoint)
 execution_agent = Agent(
     name="yieldswarm-execution",
     seed=config.EXECUTION_SEED,
     port=config.EXECUTION_PORT,
-    mailbox=config.EXECUTION_MAILBOX_KEY if config.EXECUTION_MAILBOX_KEY else None,
+    endpoint=["http://127.0.0.1:8004/submit"],
 )
 
 
@@ -111,7 +111,7 @@ class SafeExecutor:
         ctx.logger.info(f"   Total amount: {strategy.total_amount} ETH")
         ctx.logger.info(f"   Actions: {len(strategy.actions)}")
 
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         transactions = []
         total_gas = 0.0
 
@@ -169,7 +169,7 @@ class SafeExecutor:
                 ))
 
         # Calculate execution time
-        end_time = datetime.utcnow()
+        end_time = datetime.now(timezone.utc)
         execution_time = (end_time - start_time).total_seconds()
 
         # Determine overall status

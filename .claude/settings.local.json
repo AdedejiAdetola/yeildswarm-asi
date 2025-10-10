@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:fetch.ai)",
+      "WebFetch(domain:docs.asi1.ai)",
+      "WebFetch(domain:innovationlab.fetch.ai)",
+      "WebFetch(domain:github.com)",
+      "Bash(pip --version)",
+      "Bash(pip3:*)",
+      "Bash(python3 -m pip:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(sudo apt:*)",
+      "Bash(sudo apt install:*)",
+      "Bash(git init:*)",
+      "Bash(cat:*)",
+      "Bash(chmod:*)",
+      "WebFetch(domain:docs.agentverse.ai)",
+      "Bash(find:*)",
+      "Bash(for file in chain_scanner.py strategy_engine.py execution_agent.py performance_tracker.py)",
+      "Bash(do sed -i 's/from datetime import datetime/from datetime import datetime, timezone/g' \"$file\")",
+      "Bash(done)",
+      "WebFetch(domain:uagents.fetch.ai)",
+      "Bash(python:*)",
+      "Bash(source:*)",
+      "Bash(timeout 15 bash -c \"source venv/bin/activate && python agents/chain_scanner.py\")",
+      "Bash(lsof:*)",
+      "Bash(awk:*)",
+      "Bash(ip:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
