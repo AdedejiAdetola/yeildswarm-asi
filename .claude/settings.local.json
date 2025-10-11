@@ -40,7 +40,17 @@
       "Bash(pip install:*)",
       "Bash(npm install)",
       "Bash(mkdir:*)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(./venv/bin/pip install:*)",
+      "Bash(/home/grey/web3/asi_agents/venv/bin/pip list:*)",
+      "Bash(/home/grey/web3/asi_agents/venv/bin/python3:*)",
+      "Bash(/home/grey/web3/asi_agents/venv/bin/python:*)",
+      "Bash(/home/grey/web3/asi_agents/venv/bin/pip install --upgrade uagents uagents-core)",
+      "Bash(for port in 3000 8000 8001 8002 8003 8080)",
+      "Bash(do echo -n \"Port $port: \")",
+      "Bash(netstat:*)",
+      "Bash(sort:*)",
+      "Bash(ss:*)"
     ],
     "deny": [],
     "ask": []

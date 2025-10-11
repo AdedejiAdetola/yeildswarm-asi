@@ -58,9 +58,9 @@ class Config:
 
     # Agent Addresses (generated from seeds - deterministic)
     # These addresses are calculated from the agent seeds above
-    # Generated: 2025-10-11
+    # Generated: 2025-10-12 (Updated after uagents upgrade to 0.22.10)
     COORDINATOR_ADDRESS = "agent1qd3gddfekqpp562kwpvkedgdd8sjrasje85vr9pdav08y22ahyvykq6frz5"
-    SCANNER_ADDRESS = "agent1qdvd6cc4eafn92740d7afkjfx9uucetgjpqw3rg7npnqf5qg5zn7vr40plp"
+    SCANNER_ADDRESS = "agent1qw9dz27z0ydhm7g5d2k022wg3q32zjcr009p833ag94w9udgqfx9u746ck9"
     METTA_ADDRESS = "agent1q0nwxnu6dhws86gxqd7sv5ywv57nnsncfhxcgnxkxkh5mshgze9kuvztx0t"
     STRATEGY_ADDRESS = "agent1q0v38te45h3ns2nas9pluajdzguww6t99t37x9lp7an5e3pcckpxkgreypz"
     EXECUTION_ADDRESS = "agent1q290kzkwzuyzjkft35jz9ul2jjjh7rskp9525grnz0xrn6hnhnwfs4vqua5"

@@ -15,6 +15,11 @@ from datetime import datetime, timezone
 from typing import List
 import asyncio
 import random
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from threading import Thread
+import uvicorn
 
 # Import our Pydantic message models (following official doc patterns)
 from protocols.messages import (
@@ -279,17 +284,99 @@ async def startup(ctx: Context):
     ctx.logger.info("✅ Ready to receive opportunity scan requests")
 
 
+# ===== HTTP API ENDPOINTS (for Coordinator integration) =====
+
+http_app = FastAPI(title="Chain Scanner HTTP API")
+
+http_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@http_app.get("/")
+async def http_root():
+    """Health check"""
+    return {
+        "status": "online",
+        "service": "Chain Scanner",
+        "agent_address": str(scanner.address),
+        "chains": ["ethereum", "solana", "bsc", "polygon", "arbitrum"]
+    }
+
+
+@http_app.post("/query_opportunities")
+async def http_query_opportunities(request: Request):
+    """HTTP endpoint to query opportunities (called by Coordinator)"""
+    try:
+        data = await request.json()
+        opp_request = OpportunityRequest(**data)
+
+        # Scan chains (reuse the logic from message handler)
+        all_opportunities = []
+
+        if Chain.ETHEREUM in opp_request.chains:
+            all_opportunities.extend(await scan_ethereum())
+
+        if Chain.SOLANA in opp_request.chains:
+            all_opportunities.extend(await scan_solana())
+
+        if Chain.BSC in opp_request.chains:
+            all_opportunities.extend(await scan_bsc())
+
+        if Chain.POLYGON in opp_request.chains:
+            all_opportunities.extend(await scan_polygon())
+
+        if Chain.ARBITRUM in opp_request.chains:
+            all_opportunities.extend(await scan_arbitrum())
+
+        # Filter by criteria
+        filtered_opportunities = [
+            opp for opp in all_opportunities
+            if opp.apy >= opp_request.min_apy and opp.risk_score <= opp_request.max_risk_score
+        ]
+
+        # Sort by APY (highest first)
+        filtered_opportunities.sort(key=lambda x: x.apy, reverse=True)
+
+        # Build response
+        response = OpportunityResponse(
+            request_id=opp_request.request_id,
+            opportunities=filtered_opportunities,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            chains_scanned=opp_request.chains
+        )
+
+        return JSONResponse(response.dict())
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+def run_http_server():
+    """Run HTTP server in background thread"""
+    uvicorn.run(http_app, host="0.0.0.0", port=8001, log_level="warning")
+
+
 if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("🐝 YieldSwarm AI - Chain Scanner Agent")
     print("=" * 60)
     print(f"Agent Address: {scanner.address}")
     print(f"Port: {config.SCANNER_PORT}")
+    print(f"HTTP API: http://localhost:8001")
     print(f"Mailbox: Enabled (Agentverse Ready)")
     print(f"Chains: Ethereum, Solana, BSC, Polygon, Arbitrum")
     print(f"Environment: {config.ENVIRONMENT}")
     print("=" * 60)
-    print("\n🚀 Starting agent...\n")
+    print("\n🚀 Starting dual-mode agent (uAgents + HTTP)...\n")
 
-    # Run the agent (Official pattern)
+    # Start HTTP server in background thread
+    http_thread = Thread(target=run_http_server, daemon=True)
+    http_thread.start()
+
+    # Run the agent (this blocks)
     scanner.run()

@@ -9,7 +9,13 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from uagents import Agent, Context
 from utils.config import config
 from utils.models import MeTTaQuery, ProtocolKnowledge
+from protocols.messages import MeTTaQueryRequest, MeTTaQueryResponse
 from datetime import datetime
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from threading import Thread
+import uvicorn
 
 
 # Create MeTTa Knowledge Agent (Mailbox Mode for Agentverse)
@@ -262,18 +268,108 @@ async def handle_query(ctx: Context, sender: str, msg: MeTTaQuery):
         await ctx.send(sender, error_response)
 
 
+# ===== HTTP API ENDPOINTS (for Coordinator integration) =====
+
+http_app = FastAPI(title="MeTTa Knowledge HTTP API")
+
+http_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@http_app.get("/")
+async def http_root():
+    """Health check"""
+    return {
+        "status": "online",
+        "service": "MeTTa Knowledge Agent",
+        "agent_address": str(metta_agent.address),
+        "protocols": len(kb.protocol_knowledge)
+    }
+
+
+@http_app.post("/query_knowledge")
+async def http_query_knowledge(request: Request):
+    """HTTP endpoint to query knowledge (called by Coordinator)"""
+    try:
+        data = await request.json()
+        query_request = MeTTaQueryRequest(**data)
+
+        # Process query based on type
+        result = None
+        reasoning = ""
+
+        if query_request.query_type == "find_protocols":
+            risk_level = query_request.parameters.get("risk_level", "moderate")
+            chains = query_request.parameters.get("chains", [])
+
+            # Map risk level to numeric score
+            risk_map = {"conservative": 3.0, "moderate": 5.0, "aggressive": 8.0}
+            risk_tolerance = risk_map.get(risk_level, 5.0)
+
+            result_protocols = kb.query_best_protocols(risk_tolerance, chains)
+            result = {"protocols": result_protocols}
+            reasoning = f"Found {len(result_protocols)} protocols matching {risk_level} risk on chains: {', '.join(chains)}"
+
+        elif query_request.query_type == "optimize_allocation":
+            amount = query_request.parameters.get("amount", 10.0)
+            risk_level = query_request.parameters.get("risk_level", "moderate")
+
+            strategy = kb.get_allocation_strategy(amount, risk_level)
+            result = strategy
+            reasoning = strategy["reasoning"]
+
+        elif query_request.query_type == "assess_risk":
+            protocol = query_request.parameters.get("protocol", "")
+            risk_data = kb.assess_risk(protocol)
+            result = risk_data
+            reasoning = risk_data.get("recommendation", "Risk assessment completed")
+
+        else:
+            result = {"error": f"Unknown query type: {query_request.query_type}"}
+            reasoning = "Invalid query type"
+
+        # Build response
+        response = MeTTaQueryResponse(
+            request_id=query_request.request_id,
+            result=result,
+            reasoning=reasoning,
+            confidence=0.90
+        )
+
+        return JSONResponse(response.dict())
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+def run_http_server():
+    """Run HTTP server in background thread"""
+    uvicorn.run(http_app, host="0.0.0.0", port=8002, log_level="warning")
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("YieldSwarm AI - MeTTa Knowledge Agent")
     print("=" * 60)
     print(f"Agent Address: {metta_agent.address}")
     print(f"Port: {config.METTA_PORT}")
+    print(f"HTTP API: http://localhost:8002")
     print(f"Protocols in Knowledge Base: {len(kb.protocol_knowledge)}")
     print(f"Environment: {config.ENVIRONMENT}")
     print("=" * 60)
     print("\nProtocols:")
     for protocol, data in kb.protocol_knowledge.items():
         print(f"  • {protocol}: Risk {data['risk_score']}, TVL ${data['tvl']:,}")
-    print("\n🚀 Starting knowledge agent...\n")
+    print("\n🚀 Starting dual-mode agent (uAgents + HTTP)...\n")
 
+    # Start HTTP server in background thread
+    http_thread = Thread(target=run_http_server, daemon=True)
+    http_thread.start()
+
+    # Run the agent (this blocks)
     metta_agent.run()

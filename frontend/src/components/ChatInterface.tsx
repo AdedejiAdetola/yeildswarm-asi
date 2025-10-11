@@ -40,20 +40,44 @@ export default function ChatInterface() {
     }
 
     setMessages(prev => [...prev, userMessage])
+    const userInput = input
     setInput('')
     setIsLoading(true)
 
-    // Simulate agent response (will connect to backend later)
-    setTimeout(() => {
+    try {
+      // Call the real backend API (via Vite proxy)
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: userInput,
+          user_id: 'frontend-user-' + Date.now()
+        })
+      })
+
+      const data = await response.json()
+
       const agentMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: generateResponse(input),
+        text: data.success ? data.response : 'Error: ' + (data.error || 'Unknown error'),
         sender: 'agent',
         timestamp: new Date()
       }
       setMessages(prev => [...prev, agentMessage])
+    } catch (error) {
+      // Show actual error if backend is down
+      const agentMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: `❌ Unable to connect to backend.\n\nPlease ensure:\n1. Backend is running on port 8080\n2. Portfolio Coordinator is running on port 8000\n\nError: ${error instanceof Error ? error.message : 'Connection failed'}\n\nRun: python run_backend_v2.py`,
+        sender: 'agent',
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, agentMessage])
+    } finally {
       setIsLoading(false)
-    }, 1500)
+    }
   }
 
   const generateResponse = (userInput: string): string => {

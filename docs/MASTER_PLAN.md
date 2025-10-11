@@ -182,7 +182,6 @@ async def forward_to_asi(ctx: Context, sender: str, msg: Message):
 ✅ protocols/                      # Custom protocols
 ✅ utils/                          # Helper functions
 ✅ requirements.txt                # Dependencies
-✅ .env                            # Environment variables
 ✅ .gitignore                      # Git configuration
 ```
 

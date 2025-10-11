@@ -12,9 +12,18 @@ from utils.models import (
     StrategyRequest, Strategy, AllocationAction,
     YieldOpportunity, InvestmentRequest, Chain
 )
+from protocols.messages import (
+    StrategyRequest as ProtocolStrategyRequest,
+    StrategyResponse, AllocationItem, Opportunity
+)
 from datetime import datetime, timezone
 from uuid import uuid4
 import random
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from threading import Thread
+import uvicorn
 
 
 # Create Strategy Engine Agent (Mailbox Mode for Agentverse)
@@ -293,16 +302,124 @@ async def generate_strategy(ctx: Context, sender: str, msg: StrategyRequest):
         await ctx.send(sender, error_strategy)
 
 
+# ===== HTTP API ENDPOINTS (for Coordinator integration) =====
+
+http_app = FastAPI(title="Strategy Engine HTTP API")
+
+http_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@http_app.get("/")
+async def http_root():
+    """Health check"""
+    return {
+        "status": "online",
+        "service": "Strategy Engine",
+        "agent_address": str(strategy_engine.address),
+        "optimization": "multi-objective"
+    }
+
+
+@http_app.post("/generate_strategy")
+async def http_generate_strategy(request: Request):
+    """HTTP endpoint to generate strategy (called by Coordinator)"""
+    try:
+        data = await request.json()
+        strategy_request = ProtocolStrategyRequest(**data)
+
+        # Convert protocol messages to internal models
+        investment_req = InvestmentRequest(
+            user_id=strategy_request.user_id,
+            amount=strategy_request.amount,
+            currency=strategy_request.currency,
+            risk_level=strategy_request.risk_level,
+            preferred_chains=strategy_request.preferred_chains
+        )
+
+        # Convert opportunities
+        opportunities = [
+            YieldOpportunity(
+                protocol=opp.protocol,
+                chain=opp.chain,
+                apy=opp.apy,
+                tvl=opp.tvl,
+                risk_score=opp.risk_score
+            )
+            for opp in strategy_request.opportunities
+        ]
+
+        # Generate strategy using optimizer
+        strategy = optimizer.calculate_optimal_strategy(
+            investment_req,
+            opportunities,
+            strategy_request.metta_insights
+        )
+
+        # Convert strategy actions to allocation items
+        allocations = []
+        for action in strategy.actions:
+            if action.action_type == "deposit":
+                allocations.append(AllocationItem(
+                    protocol=action.protocol,
+                    chain=action.chain,
+                    amount=action.amount,
+                    percentage=(action.amount / strategy.total_amount) * 100,
+                    expected_apy=action.expected_apy,
+                    risk_score=0.0  # Will be filled from opportunity data
+                ))
+
+        # Update risk scores from opportunities
+        protocol_risk_map = {opp.protocol: opp.risk_score for opp in strategy_request.opportunities}
+        for alloc in allocations:
+            alloc.risk_score = protocol_risk_map.get(alloc.protocol, 5.0)
+
+        # Build response
+        response = StrategyResponse(
+            request_id=strategy_request.request_id,
+            user_id=strategy_request.user_id,
+            allocations=allocations,
+            total_amount=strategy.total_amount,
+            expected_portfolio_apy=strategy.expected_apy,
+            portfolio_risk_score=strategy.risk_score,
+            reasoning=f"Optimized allocation using {len(allocations)} protocols. "
+                     f"Estimated gas: {strategy.estimated_gas_cost:.4f} ETH. "
+                     f"Strategy favors {'safety' if investment_req.risk_level.value == 'conservative' else 'yield' if investment_req.risk_level.value == 'aggressive' else 'balance'}.",
+            timestamp=strategy.created_at.isoformat()
+        )
+
+        return JSONResponse(response.dict())
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+def run_http_server():
+    """Run HTTP server in background thread"""
+    uvicorn.run(http_app, host="0.0.0.0", port=8003, log_level="warning")
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("YieldSwarm AI - Strategy Engine Agent")
     print("=" * 60)
     print(f"Agent Address: {strategy_engine.address}")
     print(f"Port: {config.STRATEGY_PORT}")
+    print(f"HTTP API: http://localhost:8003")
     print(f"Optimization: Multi-objective (yield, risk, gas)")
     print(f"Risk Profiles: {', '.join(config.RISK_PROFILES.keys())}")
     print(f"Environment: {config.ENVIRONMENT}")
     print("=" * 60)
-    print("\n🚀 Starting strategy engine...\n")
+    print("\n🚀 Starting dual-mode agent (uAgents + HTTP)...\n")
 
+    # Start HTTP server in background thread
+    http_thread = Thread(target=run_http_server, daemon=True)
+    http_thread.start()
+
+    # Run the agent (this blocks)
     strategy_engine.run()

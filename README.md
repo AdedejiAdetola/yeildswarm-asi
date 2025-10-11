@@ -317,24 +317,30 @@ Total Gas Spent: 0.042 ETH
 asi_agents/
 ├── agents/                      # All 6 AI agents
 │   ├── portfolio_coordinator.py # ASI:One compatible coordinator
+│   ├── portfolio_coordinator_http.py # HTTP API version
 │   ├── chain_scanner.py         # Multi-chain monitoring
 │   ├── metta_knowledge.py       # Symbolic AI knowledge base
 │   ├── strategy_engine.py       # Optimization algorithms
 │   ├── execution_agent.py       # Safe transaction execution
 │   └── performance_tracker.py   # Analytics & reporting
+├── backend/                     # FastAPI backend (under development)
+├── frontend/                    # React frontend (under development)
 ├── metta_kb/                    # MeTTa knowledge graphs
 │   ├── defi_protocols.metta     # Protocol knowledge
 │   └── risk_models.metta        # Risk assessment rules
 ├── protocols/                   # Communication protocols
 ├── utils/                       # Shared utilities
 │   ├── config.py               # Configuration management
-│   └── models.py               # Pydantic data models
-├── tests/                       # Test suite
-├── docs/                        # Documentation
+│   ├── models.py               # Pydantic data models
+│   └── metta_engine.py         # MeTTa integration
+├── docs/                        # Comprehensive documentation
+│   ├── MASTER_PLAN.md          # 19-day implementation roadmap
+│   ├── ACTION_PLAN.md          # Detailed action items
+│   ├── CURRENT_STATE.md        # Current progress status
+│   ├── QUICKSTART.md           # Quick start guide
+│   └── ...                     # Additional documentation
 ├── requirements.txt             # Python dependencies
 ├── .env.example                # Environment template
-├── SETUP.md                    # Setup instructions
-├── WINNING_PROJECT_PLAN.md     # Complete project plan
 └── README.md                   # This file
 ```
 

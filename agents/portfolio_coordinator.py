@@ -1,6 +1,6 @@
 """
 YieldSwarm AI - Portfolio Coordinator Agent
-ASI:One compatible agent with Chat Protocol
+ASI:One compatible agent with Chat Protocol + HTTP REST API
 """
 import sys
 import os
@@ -20,6 +20,12 @@ from uuid import uuid4
 from utils.config import config
 from utils.models import InvestmentRequest, RiskLevel, Chain
 import re
+import asyncio
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
+from threading import Thread
 
 
 # Create Portfolio Coordinator Agent (Mailbox Mode for Agentverse)
@@ -260,6 +266,132 @@ async def handle_acknowledgement(ctx: Context, sender: str, msg: ChatAcknowledge
 coordinator.include(chat_proto, publish_manifest=True)
 
 
+# ===== HTTP REST API FOR BACKEND INTEGRATION =====
+# Store pending responses
+pending_responses = {}
+
+# Create FastAPI app for HTTP endpoints
+http_app = FastAPI(title="Portfolio Coordinator HTTP API")
+
+# Add CORS
+http_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@http_app.get("/")
+async def http_root():
+    """Health check endpoint"""
+    return {
+        "status": "online",
+        "service": "Portfolio Coordinator",
+        "agent_address": str(coordinator.address),
+        "http_api": "enabled",
+        "chat_protocol": "enabled"
+    }
+
+
+@http_app.post("/chat")
+async def http_chat(request: Request):
+    """
+    HTTP endpoint for chat messages from backend
+    This bridges HTTP REST API → uAgents internal processing
+    """
+    try:
+        data = await request.json()
+        user_message = data.get("text", "")
+        user_id = data.get("user_id", "http-user")
+
+        # Process the message using the same logic as chat protocol
+        response_text = await process_user_message(user_message, user_id)
+
+        return JSONResponse({
+            "success": True,
+            "response": response_text,
+            "user_id": user_id
+        })
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+
+async def process_user_message(text: str, user_id: str) -> str:
+    """
+    Process user message and return response
+    This is the core logic that both HTTP and Chat Protocol use
+    """
+    text_lower = text.lower()
+
+    # Check for help requests
+    if any(word in text_lower for word in ['help', 'how', 'what can']):
+        return (
+            "🤖 YieldSwarm AI Commands:\n\n"
+            "Investment: 'Invest [amount] [currency] with [risk] risk'\n"
+            "Portfolio: 'Show my portfolio' or 'Check performance'\n"
+            "Strategy: 'What's the best strategy for...'\n\n"
+            "Risk Levels: conservative, moderate, aggressive\n"
+            "Chains: Ethereum, Solana, BSC, Polygon, Arbitrum\n\n"
+            "My 6 agents:\n"
+            "• Chain Scanner: 24/7 multi-chain monitoring\n"
+            "• MeTTa Knowledge: DeFi protocol intelligence\n"
+            "• Strategy Engine: Optimal allocation calculator\n"
+            "• Execution Agent: Safe transaction execution\n"
+            "• Performance Tracker: Real-time analytics"
+        )
+
+    # Check for portfolio status requests
+    if any(word in text_lower for word in ['portfolio', 'performance', 'status', 'balance']):
+        return (
+            "📊 Portfolio Status:\n\n"
+            "This is a demo - connecting to Performance Tracker Agent...\n\n"
+            "Once deployed, I'll show:\n"
+            "• Total Value\n"
+            "• Active Positions\n"
+            "• Realized APY\n"
+            "• P&L (24h, 7d, 30d)\n"
+            "• Gas Costs"
+        )
+
+    # Parse investment request
+    try:
+        investment_req = parse_investment_request(text, user_id)
+
+        response = (
+            f"✅ Investment Request Received!\n\n"
+            f"Amount: {investment_req.amount} {investment_req.currency}\n"
+            f"Risk Level: {investment_req.risk_level.value}\n"
+            f"Chains: {', '.join([c.value for c in investment_req.preferred_chains])}\n\n"
+            f"🔄 Coordinating agents:\n"
+            f"1. 📡 Scanning chains for opportunities...\n"
+            f"2. 🧠 Querying knowledge base...\n"
+            f"3. ⚙️  Generating optimal strategy...\n\n"
+            f"Expected APY: {config.RISK_PROFILES[investment_req.risk_level.value]['min_apy']}-12%\n"
+            f"Risk Score: {investment_req.risk_level.value.title()}\n\n"
+            f"💡 In production, I coordinate with 6 specialized agents across {len(investment_req.preferred_chains)} chains!"
+        )
+
+        return response
+
+    except Exception as e:
+        return (
+            "❌ Error processing request. Please try:\n\n"
+            "'Invest 10 ETH with moderate risk'\n"
+            "'Show my portfolio'\n"
+            "'Help'"
+        )
+
+
+def run_http_server():
+    """Run the HTTP server in a separate thread"""
+    uvicorn.run(http_app, host="0.0.0.0", port=config.COORDINATOR_PORT, log_level="info")
+
+
 @coordinator.on_event("startup")
 async def startup(ctx: Context):
     """Startup event handler"""
@@ -267,6 +399,7 @@ async def startup(ctx: Context):
     ctx.logger.info(f"Agent address: {coordinator.address}")
     ctx.logger.info(f"ASI:One compatible: YES")
     ctx.logger.info(f"Chat Protocol: ENABLED")
+    ctx.logger.info(f"HTTP API: ENABLED on port {config.COORDINATOR_PORT}")
     ctx.logger.info(f"Environment: {config.ENVIRONMENT}")
 
 
@@ -275,10 +408,17 @@ if __name__ == "__main__":
     print("YieldSwarm AI - Portfolio Coordinator Agent")
     print("=" * 60)
     print(f"Agent Address: {coordinator.address}")
-    print(f"Port: {config.COORDINATOR_PORT}")
+    print(f"HTTP API Port: {config.COORDINATOR_PORT}")
     print(f"ASI:One Compatible: YES ✓")
+    print(f"Chat Protocol: ENABLED ✓")
+    print(f"HTTP REST API: ENABLED ✓")
     print(f"Environment: {config.ENVIRONMENT}")
     print("=" * 60)
-    print("\n🚀 Starting agent...\n")
+    print("\n🚀 Starting dual-mode agent (uAgents + HTTP)...\n")
 
+    # Start HTTP server in a background thread
+    http_thread = Thread(target=run_http_server, daemon=True)
+    http_thread.start()
+
+    # Run the uAgent (this blocks)
     coordinator.run()
