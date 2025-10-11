@@ -37,7 +37,10 @@
       "WebFetch(domain:metta-lang.dev)",
       "Bash(tree:*)",
       "Bash(pkill:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(npm install)",
+      "Bash(mkdir:*)",
+      "Read(//tmp/**)"
     ],
     "deny": [],
     "ask": []

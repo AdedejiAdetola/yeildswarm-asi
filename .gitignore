@@ -59,3 +59,6 @@ temp/
 
 
 template_projects/
+
+node_modules/
+dist/
