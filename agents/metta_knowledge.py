@@ -12,12 +12,12 @@ from utils.models import MeTTaQuery, ProtocolKnowledge
 from datetime import datetime
 
 
-# Create MeTTa Knowledge Agent (Local Mode with Endpoint)
+# Create MeTTa Knowledge Agent (Mailbox Mode for Agentverse)
 metta_agent = Agent(
     name="yieldswarm-metta",
     seed=config.METTA_SEED,
     port=config.METTA_PORT,
-    endpoint=["http://127.0.0.1:8002/submit"],
+    mailbox=f"{config.METTA_MAILBOX_KEY}@https://agentverse.ai",
 )
 
 # MeTTa Knowledge Base (simulation for now, would use actual MeTTa in production)

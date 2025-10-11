@@ -27,7 +27,13 @@
       "Bash(timeout 15 bash -c \"source venv/bin/activate && python agents/chain_scanner.py\")",
       "Bash(lsof:*)",
       "Bash(awk:*)",
-      "Bash(ip:*)"
+      "Bash(ip:*)",
+      "Bash(timeout 15 bash -c \"source venv/bin/activate && python agents/portfolio_coordinator.py\")",
+      "Bash(kill:*)",
+      "Bash(timeout:*)",
+      "Bash(bash:*)",
+      "Bash(for agent in metta strategy execution tracker)",
+      "Bash(do echo \"=== $agent ===\" tail -5 logs/$agent.log)"
     ],
     "deny": [],
     "ask": []

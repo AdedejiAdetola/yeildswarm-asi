@@ -22,12 +22,12 @@ from utils.models import InvestmentRequest, RiskLevel, Chain
 import re
 
 
-# Create Portfolio Coordinator Agent (Local Mode with Endpoint)
+# Create Portfolio Coordinator Agent (Mailbox Mode for Agentverse)
 coordinator = Agent(
     name="yieldswarm-coordinator",
     seed=config.COORDINATOR_SEED,
     port=config.COORDINATOR_PORT,
-    endpoint=["http://127.0.0.1:8000/submit"],
+    mailbox=f"{config.COORDINATOR_MAILBOX_KEY}@https://agentverse.ai",
 )
 
 # Initialize chat protocol

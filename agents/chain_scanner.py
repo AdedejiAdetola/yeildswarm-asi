@@ -14,12 +14,12 @@ import asyncio
 import random
 
 
-# Create Chain Scanner Agent (Local Mode with Endpoint)
+# Create Chain Scanner Agent (Mailbox Mode for Agentverse)
 scanner = Agent(
     name="yieldswarm-scanner",
     seed=config.SCANNER_SEED,
     port=config.SCANNER_PORT,
-    endpoint=["http://127.0.0.1:8001/submit"],
+    mailbox=f"{config.SCANNER_MAILBOX_KEY}@https://agentverse.ai",
 )
 
 

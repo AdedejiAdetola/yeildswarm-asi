@@ -17,12 +17,12 @@ from uuid import uuid4
 import random
 
 
-# Create Strategy Engine Agent (Local Mode with Endpoint)
+# Create Strategy Engine Agent (Mailbox Mode for Agentverse)
 strategy_engine = Agent(
     name="yieldswarm-strategy",
     seed=config.STRATEGY_SEED,
     port=config.STRATEGY_PORT,
-    endpoint=["http://127.0.0.1:8003/submit"],
+    mailbox=f"{config.STRATEGY_MAILBOX_KEY}@https://agentverse.ai",
 )
 
 

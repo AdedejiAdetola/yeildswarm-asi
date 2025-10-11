@@ -17,12 +17,12 @@ import asyncio
 import random
 
 
-# Create Execution Agent (Local Mode with Endpoint)
+# Create Execution Agent (Mailbox Mode for Agentverse)
 execution_agent = Agent(
     name="yieldswarm-execution",
     seed=config.EXECUTION_SEED,
     port=config.EXECUTION_PORT,
-    endpoint=["http://127.0.0.1:8004/submit"],
+    mailbox=f"{config.EXECUTION_MAILBOX_KEY}@https://agentverse.ai",
 )
 
 

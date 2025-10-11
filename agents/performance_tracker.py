@@ -16,12 +16,12 @@ from datetime import datetime, timezone, timedelta
 import random
 
 
-# Create Performance Tracker Agent (Local Mode with Endpoint)
+# Create Performance Tracker Agent (Mailbox Mode for Agentverse)
 tracker_agent = Agent(
     name="yieldswarm-tracker",
     seed=config.TRACKER_SEED,
     port=config.TRACKER_PORT,
-    endpoint=["http://127.0.0.1:8005/submit"],
+    mailbox=f"{config.TRACKER_MAILBOX_KEY}@https://agentverse.ai",
 )
 
 
