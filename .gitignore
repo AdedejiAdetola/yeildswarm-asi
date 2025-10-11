@@ -20,6 +20,7 @@ wheels/
 .installed.cfg
 *.egg
 
+
 # Virtual Environment
 venv/
 env/
@@ -55,3 +56,6 @@ agent_data/
 # Temporary files
 tmp/
 temp/
+
+
+template_projects/

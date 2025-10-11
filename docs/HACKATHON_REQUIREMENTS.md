@@ -1,3 +1,4 @@
+
 About Artificial Superintelligence Alliance
 The Artificial Superintelligence (ASI) Alliance unites Fetch.ai, SingularityNET, Ocean Protocol, and CUDOS to build a decentralized, ethical, and accessible AI ecosystem. Together, we’re pioneering the future of artificial intelligence and Web3 innovation.
 
@@ -31,28 +32,70 @@ Reward Structure
 
 Resources
 Fetch.ai Resources
-How to create an Agent with uAgents Framework ↗
+How to create an Agent with uAgents Framework ↗ -  https://innovationlab.fetch.ai/resources/docs/agent-creation/uagent-creation
 
-Communication between two uAgents ↗
+Communication between two uAgents ↗ - https://innovationlab.fetch.ai/resources/docs/agent-communication/uagent-uagent-communication
 
-How to create ASI:One compatible uAgents ↗
+How to create ASI:One compatible uAgents ↗ - https://innovationlab.fetch.ai/resources/docs/examples/chat-protocol/asi-compatible-uagents
 
-Innovation Lab GitHub Repo ↗
+Innovation Lab GitHub Repo ↗ - https://github.com/fetchai/innovation-lab-examples
 
-Past Hackathon Projects ↗
+Past Hackathon Projects ↗ - https://innovationlab.fetch.ai/projects
+- https://ai-agent-hackathon-2-0-iitm.devpost.com/project-gallery
+# Winner submissions from devpost ai-gallery
+- https://devpost.com/software/travelbud-1ow6b7
+- https://github.com/deebhikakumaran/TravelBud
+- https://dev.to/zakiy7/building-a-decentralized-multi-agent-travel-assistant-with-fetchai-langgraph-and-asi1-llm-4he5
 
-How to write a good Readme for your Agents ↗
+- https://devpost.com/software/agentflow
+- https://github.com/0rajnishk/AgentFlow
+- https://medium.com/@22f2000625/revolutionizing-multi-source-querying-with-agentflow-a-fetch-ai-powered-hackathon-project-70bf0c7b6ef7
+
+
+- https://devpost.com/software/finwell-your-personal-finance-health-copilot-on-fetch-ai
+- https://github.com/Kavinesh11/FinWell
+- https://medium.com/@24f2007585/finwell-your-personal-finance-wellness-copilot-e5f26f727f08
+
+
+- https://devpost.com/software/climate-guard
+- https://github.com/riyaarah/Climate-Guard
+
+- https://devpost.com/software/krishikripa
+- https://github.com/riyaarah/KrishiKripa
+- https://devpost.com/software/daya-fg3aun
+
+
+
+- https://plume.hackmit.org/project/debgm-aptpl-afqdh-ubjej
+- https://greenroastfront.vercel.app/
+- https://github.com/MaryamElhamidi/HackMIT2025_73
+- https://plume.hackmit.org/project/gqigz-peuqs-mlbrq-rstla
+- https://github.com/uditisharmaaa/equicare
+- https://github.com/qcoral/hackmit-2025
+- https://plume.hackmit.org/project/sxoeo-vpwmv-hlrtb-bmxaq
+- https://github.com/auriium2/hackmit25
+- https://plume.hackmit.org/project/qomge-mxfow-yajvk-hdqvj
+- https://cognify-3bez.onrender.com/
+- https://github.com/saltyquackerd/Cognify
+- https://plume.hackmit.org/project/sxuqc-fuaxb-ybskt-tdzml
+- https://github.com/mariaigartua/telly
+- https://plume.hackmit.org/project/qkwzz-zebvs-rhriq-kniud
+- https://github.com/han-hangoc-le/medpass-ehr-aimanagement
+
+
+
+How to write a good Readme for your Agents ↗ - https://innovationlab.fetch.ai/resources/docs/agentverse/searching#importance-of-good-readme
 
 Singularity.net Resources
-Understanding MeTTa ↗
+Understanding MeTTa ↗ - https://metta-lang.dev/docs/learn/tutorials/eval_intro/main_concepts.html
 
-Running MeTTa in Python ↗
+Running MeTTa in Python ↗ - https://metta-lang.dev/docs/learn/tutorials/python_use/metta_python_basics.html
 
-Nested queries and recursive graph traversal ↗
+Nested queries and recursive graph traversal ↗ - https://metta-lang.dev/docs/learn/tutorials/ground_up/nested_queries.html
 
-Setup MeTTa on Window OS ↗
+Setup MeTTa on Window OS ↗ - 
 
-Fetch.ai and MeTTa Integration ↗
+Fetch.ai and MeTTa Integration ↗ - https://github.com/fetchai/innovation-lab-examples/tree/main/web3/singularity-net-metta
 
 Submission Requirements
 Code
@@ -117,11 +160,11 @@ All agents must be registered on Agentverse with the Chat Protocol enabled to be
 Agentverse MCP Server
 Learn how to deploy your first agent on Agentverse with Claude Desktop in Under 5 Minutes
 
-Agentverse MCP Setup
+Agentverse MCP Setup - https://www.youtube.com/watch?v=5Df7nU8sjS8&t=9s
 
 Quick start example
 This file can be run on any platform supporting Python, with the necessary install permissions. This example shows two agents communicating with each other using the uAgent python library.
-Try it out on Agentverse ↗
+Try it out on Agentverse ↗ - https://agentverse.ai/
 
 from datetime import datetime
 from uuid import uuid4
@@ -197,3 +240,82 @@ agent.include(chat_proto, publish_manifest=True)
 
 if __name__ == "__main__": 
     agent.run()
+
+Got Queries?
+Reach out to us on our Discord
+
+token icon
+20k
+USDC
+Total Prizes
+
+5,000
+
+USDC
+
+1st
+
+4,000
+
+USDC
+
+2nd
+
+3,500
+
+USDC
+
+3rd
+
+3,000
+
+USDC
+
+4th
+
+2,000
+
+USDC
+
+5th
+
+1,500
+
+USDC
+
+6th
+
+1,000
+
+USDC
+
+7th
+
+suit case
+1
+
+SUBMISSION
+
+suit case
+19d:21h:9m
+
+REMAINING
+
+Hackathon tracks do not require credits
+
+CYPHERPUNK TRACK
+
+This is a Special Colosseum Cypherpunk Hackathon track hosted exclusively on Superteam Earn.
+
+View All Tracks
+SKILLS NEEDED
+
+Backend
+Blockchain
+Frontend
+CONTACT
+
+Reach outif you have any questions about this listing
+WINNER ANNOUNCEMENT BY
+
+November 14, 2025 - as scheduled by the sponsor.

@@ -184,33 +184,51 @@ async def handle_message(ctx: Context, sender: str, msg: ChatMessage):
                 if sender in user_sessions:
                     user_sessions[sender]["requests"].append(investment_req)
 
-                # Create response message
-                response_text = (
-                    f"✅ Investment Request Parsed:\n\n"
+                # Send initial acknowledgment
+                initial_response = create_text_chat(
+                    f"✅ Investment Request Received:\n\n"
                     f"Amount: {investment_req.amount} {investment_req.currency}\n"
                     f"Risk Level: {investment_req.risk_level.value}\n"
                     f"Chains: {', '.join([c.value for c in investment_req.preferred_chains])}\n\n"
                     f"🔄 Coordinating agents:\n"
-                    f"1. ✓ Chain Scanner - Scanning for opportunities...\n"
-                    f"2. ✓ MeTTa Knowledge - Analyzing protocol data...\n"
-                    f"3. ⏳ Strategy Engine - Calculating optimal allocation...\n\n"
-                    f"💡 In production, I would:\n"
-                    f"• Query {len(investment_req.preferred_chains)} chains across 20+ protocols\n"
-                    f"• Use MeTTa knowledge graphs for intelligent decisions\n"
-                    f"• Generate optimized strategy in seconds\n"
-                    f"• Execute with MEV protection\n\n"
-                    f"Expected APY range: {config.RISK_PROFILES[investment_req.risk_level.value]['min_apy']}%+"
+                    f"1. 📡 Scanning chains for opportunities...\n"
+                    f"2. 🧠 Querying knowledge base...\n"
+                    f"3. ⚙️  Generating optimal strategy...\n\n"
+                    f"Please wait while I coordinate with my agent swarm..."
+                )
+                await ctx.send(sender, initial_response)
+
+                # === STEP 1: Request opportunities from Chain Scanner ===
+                from protocols.messages import OpportunityRequest
+                request_id = str(uuid4())
+
+                opp_request = OpportunityRequest(
+                    request_id=request_id,
+                    chains=investment_req.preferred_chains,
+                    min_apy=config.RISK_PROFILES[investment_req.risk_level.value]['min_apy'],
+                    max_risk_score=config.RISK_PROFILES[investment_req.risk_level.value]['max_risk_score']
                 )
 
-                response_msg = create_text_chat(response_text)
-                await ctx.send(sender, response_msg)
+                ctx.logger.info(f"📤 Sending opportunity request to Scanner: {config.SCANNER_ADDRESS}")
+                await ctx.send(config.SCANNER_ADDRESS, opp_request)
 
-                # In production, would now send to other agents:
-                # await ctx.send(config.SCANNER_ADDRESS, {...})
-                # await ctx.send(config.METTA_ADDRESS, {...})
-                # await ctx.send(config.STRATEGY_ADDRESS, {...})
+                # Send progress update
+                progress_msg = create_text_chat(
+                    f"✓ Chain Scanner activated\n"
+                    f"  Scanning {len(investment_req.preferred_chains)} chains...\n"
+                    f"  Looking for APY ≥ {config.RISK_PROFILES[investment_req.risk_level.value]['min_apy']}%"
+                )
+                await ctx.send(sender, progress_msg)
+
+                # Note: In a real implementation, we would wait for responses
+                # from Scanner, MeTTa, and Strategy agents before responding.
+                # For now, we're demonstrating the message sending pattern.
+                # Full async orchestration will be implemented in next phase.
+
+                ctx.logger.info(f"✅ Investment request {request_id} initiated for user {sender}")
 
             except Exception as e:
+                ctx.logger.error(f"Error processing investment request: {str(e)}")
                 error_msg = create_text_chat(
                     f"❌ Error processing request: {str(e)}\n\n"
                     f"Please try: 'Invest 10 ETH with moderate risk'"

@@ -242,23 +242,55 @@ async def monitor_strategies(ctx: Context):
     # - Generate and send optimized strategies back to Coordinator
 
 
-# Message handler for production
-# @strategy_engine.on_message(model=StrategyRequest)
-# async def generate_strategy(ctx: Context, sender: str, msg: StrategyRequest):
-#     """Generate optimal investment strategy"""
-#     ctx.logger.info(f"Generating strategy for {msg.investment_request.user_id}")
-#
-#     strategy = optimizer.calculate_optimal_strategy(
-#         msg.investment_request,
-#         msg.opportunities,
-#         msg.metta_knowledge
-#     )
-#
-#     ctx.logger.info(f"Strategy generated: {len(strategy.actions)} actions, "
-#                     f"Expected APY: {strategy.expected_apy:.2f}%")
-#
-#     # Send back to coordinator
-#     await ctx.send(sender, strategy)
+# ===== MESSAGE HANDLERS FOR INTER-AGENT COMMUNICATION =====
+
+@strategy_engine.on_message(model=StrategyRequest)
+async def generate_strategy(ctx: Context, sender: str, msg: StrategyRequest):
+    """
+    Generate optimal investment strategy based on opportunities and constraints
+
+    Pattern: @agent.on_message(model=MessageModel)
+    """
+    ctx.logger.info(f"⚙️  Received strategy request from {sender}")
+    ctx.logger.info(f"   Request ID: {msg.request_id}")
+    ctx.logger.info(f"   User: {msg.investment_request.user_id}")
+    ctx.logger.info(f"   Amount: {msg.investment_request.amount} {msg.investment_request.currency}")
+    ctx.logger.info(f"   Risk Level: {msg.investment_request.risk_level.value}")
+    ctx.logger.info(f"   Opportunities: {len(msg.opportunities)}")
+
+    try:
+        # Generate optimal strategy using opportunities
+        strategy = optimizer.calculate_optimal_strategy(
+            msg.investment_request,
+            msg.opportunities,
+            msg.metta_knowledge
+        )
+
+        ctx.logger.info(f"✅ Strategy generated successfully")
+        ctx.logger.info(f"   Strategy ID: {strategy.strategy_id}")
+        ctx.logger.info(f"   Actions: {len(strategy.actions)}")
+        ctx.logger.info(f"   Expected APY: {strategy.expected_apy:.2f}%")
+        ctx.logger.info(f"   Risk Score: {strategy.risk_score:.2f}")
+        ctx.logger.info(f"   Estimated Gas: {strategy.estimated_gas_cost:.6f} ETH")
+
+        # Send strategy back to coordinator
+        await ctx.send(sender, strategy)
+        ctx.logger.info(f"📤 Sent strategy to {sender}")
+
+    except Exception as e:
+        ctx.logger.error(f"❌ Error generating strategy: {str(e)}")
+        # Send error response - create a minimal strategy with error info
+        error_strategy = Strategy(
+            strategy_id=str(uuid4()),
+            user_id=msg.investment_request.user_id,
+            total_amount=msg.investment_request.amount,
+            actions=[],
+            expected_apy=0.0,
+            risk_score=0.0,
+            estimated_gas_cost=0.0,
+            created_at=datetime.now(timezone.utc)
+        )
+        await ctx.send(sender, error_strategy)
 
 
 if __name__ == "__main__":

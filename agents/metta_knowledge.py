@@ -199,10 +199,67 @@ async def update_knowledge(ctx: Context):
     ctx.logger.info("✅ Knowledge base updated")
 
 
-# Message handlers would go here for production
-# @metta_agent.on_message(model=MeTTaQuery)
-# async def handle_query(ctx: Context, sender: str, msg: MeTTaQuery):
-#     ...
+# ===== MESSAGE HANDLERS FOR INTER-AGENT COMMUNICATION =====
+
+@metta_agent.on_message(model=MeTTaQuery)
+async def handle_query(ctx: Context, sender: str, msg: MeTTaQuery):
+    """
+    Handle knowledge queries from other agents
+
+    Pattern: @agent.on_message(model=MessageModel)
+    """
+    ctx.logger.info(f"🧠 Received MeTTa query from {sender}")
+    ctx.logger.info(f"   Query type: {msg.query_type}")
+    ctx.logger.info(f"   Parameters: {msg.parameters}")
+
+    try:
+        result = None
+
+        if msg.query_type == "best_protocols":
+            # Query: Find best protocols for given risk/chains
+            risk_tolerance = msg.parameters.get("risk_tolerance", 5.0)
+            chains = msg.parameters.get("chains", [])
+            result = kb.query_best_protocols(risk_tolerance, chains)
+            ctx.logger.info(f"   Found {len(result)} protocols")
+
+        elif msg.query_type == "assess_risk":
+            # Query: Assess risk for specific protocol
+            protocol = msg.parameters.get("protocol", "")
+            result = kb.assess_risk(protocol)
+            ctx.logger.info(f"   Risk assessment for {protocol}: {result.get('overall_risk_score', 'N/A')}")
+
+        elif msg.query_type == "allocation_strategy":
+            # Query: Get optimal allocation strategy
+            amount = msg.parameters.get("amount", 10.0)
+            risk_level = msg.parameters.get("risk_level", "moderate")
+            result = kb.get_allocation_strategy(amount, risk_level)
+            ctx.logger.info(f"   Generated {len(result['allocations'])} allocation(s)")
+
+        else:
+            ctx.logger.warning(f"   Unknown query type: {msg.query_type}")
+            result = {"error": f"Unknown query type: {msg.query_type}"}
+
+        # Send response back
+        response = ProtocolKnowledge(
+            query_id=msg.query_id,
+            protocols=result if isinstance(result, list) else [result],
+            reasoning=f"MeTTa knowledge base query: {msg.query_type}",
+            confidence=0.95
+        )
+
+        await ctx.send(sender, response)
+        ctx.logger.info(f"📤 Sent knowledge response to {sender}")
+
+    except Exception as e:
+        ctx.logger.error(f"❌ Error processing query: {str(e)}")
+        # Send error response
+        error_response = ProtocolKnowledge(
+            query_id=msg.query_id,
+            protocols=[],
+            reasoning=f"Error: {str(e)}",
+            confidence=0.0
+        )
+        await ctx.send(sender, error_response)
 
 
 if __name__ == "__main__":
