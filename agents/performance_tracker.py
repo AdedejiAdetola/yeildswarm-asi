@@ -1,269 +1,259 @@
 """
-YieldSwarm AI - Performance Tracker Agent
-Tracks portfolio performance and generates analytics
+YieldSwarm AI - Performance Tracker Agent (Clean)
+Pure uAgents implementation for portfolio performance monitoring
 """
-import sys
+
 import os
+import sys
+import logging
+from datetime import datetime, timezone
+from typing import Dict, List
+import json
+
+# Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from uagents import Agent, Context
+from protocols.messages import (
+    PerformanceQuery,
+    PerformanceResponse,
+    PositionDetail
+)
 from utils.config import config
-from utils.models import (
-    PortfolioMetrics, Position, PerformanceUpdate,
-    ExecutionReport, Chain, ProtocolType
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-from datetime import datetime, timezone, timedelta
-import random
+logger = logging.getLogger(__name__)
 
-
-# Create Performance Tracker Agent (Mailbox Mode for Agentverse)
-tracker_agent = Agent(
-    name="yieldswarm-tracker",
+# Initialize Performance Tracker Agent
+performance_agent = Agent(
+    name="performance_tracker",
     seed=config.TRACKER_SEED,
-    port=config.TRACKER_PORT,
-    mailbox=f"{config.TRACKER_MAILBOX_KEY}@https://agentverse.ai",
+    port=8005,
+    endpoint=["http://0.0.0.0:8005/submit"]
 )
 
+# In-memory storage for tracking (in production, use database)
+user_portfolios: Dict[str, Dict] = {}
 
-class PerformanceAnalyzer:
-    """Analyzes and tracks portfolio performance"""
 
-    def __init__(self):
-        self.portfolios = {}  # user_id -> portfolio data
-        self.historical_data = {}  # user_id -> historical metrics
-        self.tax_events = {}  # user_id -> tax events
+@performance_agent.on_event("startup")
+async def startup(ctx: Context):
+    """Agent startup event"""
+    logger.info("=" * 60)
+    logger.info("📊 Performance Tracker Agent Starting")
+    logger.info("=" * 60)
+    logger.info(f"Agent Address: {ctx.agent.address}")
+    logger.info(f"Port: 8005")
+    logger.info(f"Coordinator: {config.COORDINATOR_ADDRESS}")
+    logger.info("=" * 60)
 
-    def create_portfolio(self, user_id: str):
-        """Initialize portfolio for a user"""
-        self.portfolios[user_id] = {
-            "positions": [],
-            "total_value": 0.0,
-            "total_invested": 0.0,
-            "total_gas_costs": 0.0,
-            "created_at": datetime.now(timezone.utc)
-        }
-        self.historical_data[user_id] = []
-        self.tax_events[user_id] = []
 
-    def add_position(self, user_id: str, execution_report: ExecutionReport):
-        """Add positions from executed strategy"""
-        if user_id not in self.portfolios:
-            self.create_portfolio(user_id)
+@performance_agent.on_message(model=PerformanceQuery)
+async def handle_performance_query(ctx: Context, sender: str, msg: PerformanceQuery):
+    """
+    Handle performance query from Portfolio Coordinator
 
-        # Simulate position creation from execution report
-        for tx in execution_report.transactions:
-            if tx.status == "success" and "deposit" in str(tx.chain):
-                position = Position(
-                    protocol="Simulated Protocol",
-                    chain=tx.chain,
-                    amount=random.uniform(1.0, 5.0),
-                    currency="ETH",
-                    entry_apy=random.uniform(4.0, 15.0),
-                    current_apy=random.uniform(4.0, 15.0),
-                    entry_date=datetime.now(timezone.utc)
-                )
-                self.portfolios[user_id]["positions"].append(position)
+    Query Types:
+    - portfolio_status: Current portfolio value and positions
+    - performance_history: Historical P&L over time
+    - tax_report: Tax reporting data for realized gains
 
-        # Update gas costs
-        self.portfolios[user_id]["total_gas_costs"] += execution_report.total_gas_cost
+    Process:
+    1. Retrieve user's positions from storage
+    2. Query current prices from oracles/APIs
+    3. Calculate P&L and performance metrics
+    4. Return comprehensive performance data
 
-    def calculate_portfolio_metrics(self, user_id: str) -> PortfolioMetrics:
-        """Calculate comprehensive portfolio metrics"""
-        if user_id not in self.portfolios:
-            return PortfolioMetrics(
-                total_value=0.0,
-                pnl_24h=0.0,
-                pnl_7d=0.0,
-                pnl_30d=0.0,
-                realized_apy=0.0,
-                total_gas_costs=0.0,
-                positions=[],
-                updated_at=datetime.now(timezone.utc)
-            )
+    NOTE: This is a SIMULATION for the hackathon.
+    In production, this would:
+    - Query on-chain positions via RPC
+    - Integrate with price oracles (Chainlink, etc.)
+    - Track all historical transactions
+    - Calculate accurate P&L including gas
+    """
+    logger.info("=" * 60)
+    logger.info(f"📨 Received Performance Query: {msg.request_id}")
+    logger.info(f"   From: {sender}")
+    logger.info(f"   User: {msg.user_id}")
+    logger.info(f"   Query Type: {msg.query_type}")
+    logger.info("=" * 60)
 
-        portfolio = self.portfolios[user_id]
-
-        # Calculate total value
-        total_value = sum(pos.amount for pos in portfolio["positions"])
-
-        # Simulate P&L (in production, would calculate from actual price data)
-        pnl_24h = total_value * random.uniform(-0.02, 0.05)  # -2% to +5%
-        pnl_7d = total_value * random.uniform(-0.05, 0.15)   # -5% to +15%
-        pnl_30d = total_value * random.uniform(-0.10, 0.30)  # -10% to +30%
-
-        # Calculate realized APY
-        if portfolio["positions"]:
-            avg_apy = sum(pos.current_apy for pos in portfolio["positions"]) / len(portfolio["positions"])
+    try:
+        # Handle different query types
+        if msg.query_type == "portfolio_status":
+            response = await _get_portfolio_status(msg)
+        elif msg.query_type == "performance_history":
+            response = await _get_performance_history(msg)
+        elif msg.query_type == "tax_report":
+            response = await _get_tax_report(msg)
         else:
-            avg_apy = 0.0
+            # Default to portfolio status
+            response = await _get_portfolio_status(msg)
 
-        # Update current APYs (simulate market changes)
-        for pos in portfolio["positions"]:
-            # Simulate APY fluctuation
-            pos.current_apy = max(0.0, pos.entry_apy * random.uniform(0.9, 1.1))
+        # Send response back to coordinator
+        await ctx.send(sender, response)
 
-        return PortfolioMetrics(
-            total_value=total_value,
-            pnl_24h=pnl_24h,
-            pnl_7d=pnl_7d,
-            pnl_30d=pnl_30d,
-            realized_apy=avg_apy,
-            total_gas_costs=portfolio["total_gas_costs"],
-            positions=portfolio["positions"],
-            updated_at=datetime.now(timezone.utc)
+        logger.info(f"✅ Sent Performance Response: {msg.request_id}")
+        logger.info(f"   Portfolio Value: ${response.total_portfolio_value:.2f}")
+        logger.info(f"   P&L: ${response.total_pnl:.2f} ({response.total_pnl_percentage:.2f}%)")
+        logger.info(f"   Positions: {len(response.positions)}")
+
+    except Exception as e:
+        logger.error(f"❌ Error processing performance query: {str(e)}")
+        # Send error response with empty data
+        error_response = PerformanceResponse(
+            request_id=msg.request_id,
+            user_id=msg.user_id,
+            total_portfolio_value=0.0,
+            total_pnl=0.0,
+            total_pnl_percentage=0.0,
+            positions=[],
+            realized_apy=0.0,
+            total_gas_spent=0.0,
+            timestamp=datetime.now(timezone.utc).isoformat()
+        )
+        await ctx.send(sender, error_response)
+
+
+async def _get_portfolio_status(msg: PerformanceQuery) -> PerformanceResponse:
+    """
+    Get current portfolio status
+
+    In production, this would:
+    - Query on-chain positions for user's wallet
+    - Get current token prices
+    - Calculate current value vs entry value
+    """
+
+    # Check if user has portfolio data
+    if msg.user_id not in user_portfolios:
+        # Return empty portfolio for new users
+        return PerformanceResponse(
+            request_id=msg.request_id,
+            user_id=msg.user_id,
+            total_portfolio_value=0.0,
+            total_pnl=0.0,
+            total_pnl_percentage=0.0,
+            positions=[],
+            realized_apy=0.0,
+            total_gas_spent=0.0,
+            timestamp=datetime.now(timezone.utc).isoformat()
         )
 
-    def generate_tax_report(self, user_id: str) -> dict:
-        """Generate tax report for IRS Form 8949"""
-        if user_id not in self.tax_events:
-            return {"events": [], "total_gains": 0.0, "total_losses": 0.0}
+    # Retrieve user's portfolio
+    portfolio = user_portfolios[msg.user_id]
 
-        events = self.tax_events[user_id]
+    # Simulate getting current positions with updated prices
+    positions = _simulate_positions(portfolio)
 
-        total_gains = sum(e["gain"] for e in events if e["gain"] > 0)
-        total_losses = sum(abs(e["gain"]) for e in events if e["gain"] < 0)
+    # Calculate totals
+    total_value = sum(pos.current_value for pos in positions)
+    total_entry = sum(pos.entry_value for pos in positions)
+    total_pnl = total_value - total_entry
+    total_pnl_pct = (total_pnl / total_entry * 100) if total_entry > 0 else 0.0
 
-        return {
-            "events": events,
-            "total_gains": total_gains,
-            "total_losses": total_losses,
-            "net": total_gains - total_losses,
-            "form_8949_ready": True
-        }
+    # Calculate realized APY
+    # Simplified: sum of position APYs weighted by allocation
+    realized_apy = sum(
+        pos.current_apy * (pos.current_value / total_value)
+        for pos in positions
+    ) if total_value > 0 else 0.0
 
-    def identify_rebalancing_opportunities(self, user_id: str, new_opportunities: list) -> list:
-        """Identify when portfolio should be rebalanced"""
-        if user_id not in self.portfolios:
-            return []
-
-        recommendations = []
-
-        portfolio = self.portfolios[user_id]
-
-        # Check for significantly better opportunities
-        for pos in portfolio["positions"]:
-            current_apy = pos.current_apy
-
-            # Find better opportunities (>15% APY improvement)
-            for opp in new_opportunities:
-                if opp.apy > current_apy * 1.15:
-                    recommendations.append({
-                        "action": "rebalance",
-                        "from_protocol": pos.protocol,
-                        "to_protocol": opp.protocol,
-                        "current_apy": current_apy,
-                        "new_apy": opp.apy,
-                        "improvement": ((opp.apy - current_apy) / current_apy) * 100,
-                        "amount": pos.amount
-                    })
-
-        return recommendations
-
-    def update_metta_knowledge(self, metrics: PortfolioMetrics) -> list:
-        """Generate MeTTa knowledge updates from performance data"""
-        updates = []
-
-        for pos in metrics.positions:
-            # Create MeTTa atom for actual performance
-            metta_atom = f"""
-(= (Actual-Performance {pos.protocol} {pos.chain.value} {datetime.now(timezone.utc).strftime('%Y-%m-%d')})
-   (APY {pos.current_apy:.2f})
-   (Duration-Days {(datetime.now(timezone.utc) - pos.entry_date).days})
-   (Performance {'Exceeds' if pos.current_apy > pos.entry_apy else 'Below'}-Expectation))
-"""
-            updates.append(metta_atom)
-
-        return updates
+    return PerformanceResponse(
+        request_id=msg.request_id,
+        user_id=msg.user_id,
+        total_portfolio_value=total_value,
+        total_pnl=total_pnl,
+        total_pnl_percentage=total_pnl_pct,
+        positions=positions,
+        realized_apy=realized_apy,
+        total_gas_spent=portfolio.get("total_gas_spent", 0.0),
+        timestamp=datetime.now(timezone.utc).isoformat()
+    )
 
 
-# Initialize analyzer
-analyzer = PerformanceAnalyzer()
+async def _get_performance_history(msg: PerformanceQuery) -> PerformanceResponse:
+    """Get historical performance data"""
+    # For hackathon, return current status
+    # In production, would return time-series data
+    return await _get_portfolio_status(msg)
 
 
-@tracker_agent.on_event("startup")
-async def startup(ctx: Context):
-    """Startup event handler"""
-    ctx.logger.info("=" * 60)
-    ctx.logger.info("Performance Tracker Agent started")
-    ctx.logger.info(f"Agent address: {tracker_agent.address}")
-    ctx.logger.info("Features:")
-    ctx.logger.info("  • Real-time P&L tracking")
-    ctx.logger.info("  • Tax reporting (IRS Form 8949)")
-    ctx.logger.info("  • Rebalancing recommendations")
-    ctx.logger.info("  • MeTTa knowledge feedback loop")
-    ctx.logger.info(f"Environment: {config.ENVIRONMENT}")
-    ctx.logger.info("=" * 60)
+async def _get_tax_report(msg: PerformanceQuery) -> PerformanceResponse:
+    """Generate tax report"""
+    # For hackathon, return current status
+    # In production, would calculate realized gains/losses
+    return await _get_portfolio_status(msg)
 
 
-@tracker_agent.on_interval(period=60.0)
-async def track_performance(ctx: Context):
-    """Periodically track and log performance"""
-    if not analyzer.portfolios:
-        ctx.logger.info("📊 No active portfolios to track")
-        return
+def _simulate_positions(portfolio: Dict) -> List[PositionDetail]:
+    """
+    Simulate current positions with price changes
 
-    ctx.logger.info(f"📊 Tracking {len(analyzer.portfolios)} portfolio(s)")
+    In production, this would:
+    1. Query on-chain positions
+    2. Get current token prices from oracles
+    3. Calculate real P&L
+    """
+    positions = []
 
-    for user_id, portfolio in analyzer.portfolios.items():
-        metrics = analyzer.calculate_portfolio_metrics(user_id)
+    for position_data in portfolio.get("positions", []):
+        # Simulate price change (random between -10% to +30%)
+        import random
+        price_change = random.uniform(-0.10, 0.30)
 
-        ctx.logger.info(f"\n  User: {user_id[:16]}...")
-        ctx.logger.info(f"  Total Value: {metrics.total_value:.4f} ETH")
-        ctx.logger.info(f"  Realized APY: {metrics.realized_apy:.2f}%")
-        ctx.logger.info(f"  P&L 24h: {metrics.pnl_24h:+.4f} ETH ({(metrics.pnl_24h/metrics.total_value*100):+.2f}%)")
-        ctx.logger.info(f"  Positions: {len(metrics.positions)}")
-        ctx.logger.info(f"  Gas Costs: {metrics.total_gas_costs:.6f} ETH")
+        entry_value = position_data["entry_value"]
+        current_value = entry_value * (1 + price_change)
+        pnl = current_value - entry_value
+        pnl_pct = (pnl / entry_value * 100) if entry_value > 0 else 0.0
 
-        # In production, would send performance updates
-        # performance_update = PerformanceUpdate(
-        #     user_id=user_id,
-        #     metrics=metrics
-        # )
-        # await ctx.send(config.COORDINATOR_ADDRESS, performance_update)
+        # Calculate days held (for demo, use random 1-30 days)
+        days_held = random.randint(1, 30)
 
-        # Update MeTTa knowledge base
-        metta_updates = analyzer.update_metta_knowledge(metrics)
-        if metta_updates:
-            ctx.logger.info(f"  🧠 Generated {len(metta_updates)} MeTTa knowledge updates")
-            # await ctx.send(config.METTA_ADDRESS, {"updates": metta_updates})
+        position = PositionDetail(
+            protocol=position_data["protocol"],
+            chain=position_data["chain"],
+            amount=position_data["amount"],
+            entry_value=entry_value,
+            current_value=current_value,
+            pnl=pnl,
+            pnl_percentage=pnl_pct,
+            current_apy=position_data.get("current_apy", 5.0),
+            days_held=days_held
+        )
+        positions.append(position)
 
-
-@tracker_agent.on_interval(period=300.0)  # Every 5 minutes
-async def check_rebalancing(ctx: Context):
-    """Check for rebalancing opportunities"""
-    ctx.logger.info("🔄 Checking for rebalancing opportunities...")
-
-    # In production, would:
-    # 1. Get latest opportunities from Chain Scanner
-    # 2. Compare with current positions
-    # 3. Recommend rebalancing if >15% APY improvement
-    # 4. Send recommendations to Coordinator
+    return positions
 
 
-# Message handlers for production
-# @tracker_agent.on_message(model=ExecutionReport)
-# async def handle_execution_report(ctx: Context, sender: str, msg: ExecutionReport):
-#     """Record execution results"""
-#     ctx.logger.info(f"Recording execution: {msg.strategy_id}")
-#     # Extract user_id from strategy and add positions
-#     analyzer.add_position("user_id", msg)
+def update_user_portfolio(user_id: str, allocations: List, total_gas: float):
+    """
+    Update user portfolio after execution
+    Called by coordinator after successful execution
+    """
+    positions = []
+    for alloc in allocations:
+        positions.append({
+            "protocol": alloc.protocol,
+            "chain": alloc.chain,
+            "amount": alloc.amount,
+            "entry_value": alloc.amount * 2000,  # Assume ETH = $2000
+            "current_apy": alloc.expected_apy
+        })
+
+    user_portfolios[user_id] = {
+        "positions": positions,
+        "total_gas_spent": total_gas,
+        "last_updated": datetime.now(timezone.utc).isoformat()
+    }
+
+    logger.info(f"📝 Updated portfolio for user {user_id}: {len(positions)} positions")
 
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("YieldSwarm AI - Performance Tracker Agent")
-    print("=" * 60)
-    print(f"Agent Address: {tracker_agent.address}")
-    print(f"Port: {config.TRACKER_PORT}")
-    print("\n📊 Tracking Capabilities:")
-    print("  ✓ Real-time portfolio valuation")
-    print("  ✓ P&L tracking (24h, 7d, 30d)")
-    print("  ✓ APY monitoring")
-    print("  ✓ Tax reporting (Form 8949)")
-    print("  ✓ Rebalancing recommendations")
-    print("  ✓ MeTTa knowledge updates")
-    print(f"\n⚙️  Environment: {config.ENVIRONMENT}")
-    print("=" * 60)
-    print("\n🚀 Starting performance tracker...\n")
-
-    tracker_agent.run()
+    logger.info("\n📊 Starting Performance Tracker Agent...\n")
+    performance_agent.run()

@@ -57,7 +57,9 @@
       "Bash(./start_all_agents.sh:*)",
       "Bash(for log in logs/*.log)",
       "Bash(tail:*)",
-      "Bash(./check_system_status.sh:*)"
+      "Bash(./check_system_status.sh:*)",
+      "Bash(rm:*)",
+      "Bash(mv:*)"
     ],
     "deny": [],
     "ask": []

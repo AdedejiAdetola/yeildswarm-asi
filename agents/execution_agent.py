@@ -1,272 +1,228 @@
 """
-YieldSwarm AI - Execution Agent
-Safely executes investment strategies with MEV protection
+YieldSwarm AI - Execution Agent (Clean)
+Pure uAgents implementation for transaction execution
 """
-import sys
+
 import os
+import sys
+import logging
+from datetime import datetime, timezone
+from typing import List
+import asyncio
+from uuid import uuid4
+
+# Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from uagents import Agent, Context
+from protocols.messages import (
+    ExecutionRequest,
+    ExecutionResponse,
+    TransactionDetail,
+    AllocationItem
+)
 from utils.config import config
-from utils.models import (
-    ApprovedStrategy, TransactionResult, ExecutionReport,
-    AllocationAction, Chain
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-from datetime import datetime, timezone
-import asyncio
-import random
+logger = logging.getLogger(__name__)
 
-
-# Create Execution Agent (Mailbox Mode for Agentverse)
+# Initialize Execution Agent
 execution_agent = Agent(
-    name="yieldswarm-execution",
+    name="execution_agent",
     seed=config.EXECUTION_SEED,
-    port=config.EXECUTION_PORT,
-    mailbox=f"{config.EXECUTION_MAILBOX_KEY}@https://agentverse.ai",
+    port=8004,
+    endpoint=["http://0.0.0.0:8004/submit"]
 )
-
-
-class SafeExecutor:
-    """Executes transactions with safety checks and MEV protection"""
-
-    def __init__(self):
-        self.pending_transactions = {}
-        self.executed_strategies = []
-
-    async def simulate_transaction(self, action: AllocationAction) -> dict:
-        """Simulate transaction before execution"""
-        # Simulate validation
-        await asyncio.sleep(0.1)  # Simulate network call
-
-        # Check for potential issues
-        will_fail = random.random() < 0.05  # 5% simulated failure rate
-
-        return {
-            "will_succeed": not will_fail,
-            "estimated_gas": random.uniform(0.003, 0.008),
-            "estimated_slippage": random.uniform(0.001, 0.01),
-            "error": "Insufficient liquidity" if will_fail else None
-        }
-
-    async def execute_bridge(self, action: AllocationAction) -> TransactionResult:
-        """Execute cross-chain bridge transaction"""
-        print(f"  🌉 Bridging {action.amount:.4f} {action.currency} to {action.chain.value}...")
-
-        # Simulate bridge transaction
-        await asyncio.sleep(0.5)
-
-        # Generate mock transaction hash
-        tx_hash = f"0x{''.join(random.choices('0123456789abcdef', k=64))}"
-
-        return TransactionResult(
-            tx_hash=tx_hash,
-            chain=action.chain,
-            status="success",
-            gas_used=random.uniform(0.008, 0.015),
-            error=None
-        )
-
-    async def execute_deposit(self, action: AllocationAction) -> TransactionResult:
-        """Execute deposit to protocol"""
-        print(f"  💰 Depositing {action.amount:.4f} {action.currency} to {action.protocol} on {action.chain.value}...")
-
-        # Simulate deposit transaction
-        await asyncio.sleep(0.3)
-
-        # Generate mock transaction hash
-        tx_hash = f"0x{''.join(random.choices('0123456789abcdef', k=64))}"
-
-        return TransactionResult(
-            tx_hash=tx_hash,
-            chain=action.chain,
-            status="success",
-            gas_used=random.uniform(0.003, 0.007),
-            error=None
-        )
-
-    async def execute_swap(self, action: AllocationAction) -> TransactionResult:
-        """Execute token swap with MEV protection"""
-        print(f"  🔄 Swapping on {action.protocol}...")
-
-        # Simulate swap with MEV protection
-        await asyncio.sleep(0.2)
-
-        tx_hash = f"0x{''.join(random.choices('0123456789abcdef', k=64))}"
-
-        return TransactionResult(
-            tx_hash=tx_hash,
-            chain=action.chain,
-            status="success",
-            gas_used=random.uniform(0.002, 0.005),
-            error=None
-        )
-
-    async def execute_strategy(
-        self,
-        strategy: 'Strategy',
-        ctx: Context
-    ) -> ExecutionReport:
-        """Execute complete investment strategy"""
-        ctx.logger.info(f"🚀 Executing strategy {strategy.strategy_id}")
-        ctx.logger.info(f"   Total amount: {strategy.total_amount} ETH")
-        ctx.logger.info(f"   Actions: {len(strategy.actions)}")
-
-        start_time = datetime.now(timezone.utc)
-        transactions = []
-        total_gas = 0.0
-
-        # Execute actions in sequence
-        for i, action in enumerate(strategy.actions, 1):
-            ctx.logger.info(f"\n📋 Action {i}/{len(strategy.actions)}: {action.action_type}")
-
-            # Simulate transaction first
-            simulation = await self.simulate_transaction(action)
-
-            if not simulation["will_succeed"]:
-                ctx.logger.error(f"❌ Simulation failed: {simulation['error']}")
-                # Record failed transaction
-                transactions.append(TransactionResult(
-                    tx_hash="",
-                    chain=action.chain,
-                    status="failed",
-                    error=simulation["error"]
-                ))
-                continue
-
-            # Execute based on action type
-            try:
-                if action.action_type == "bridge":
-                    result = await self.execute_bridge(action)
-                elif action.action_type == "deposit":
-                    result = await self.execute_deposit(action)
-                elif action.action_type == "swap":
-                    result = await self.execute_swap(action)
-                else:
-                    result = TransactionResult(
-                        tx_hash="",
-                        chain=action.chain,
-                        status="failed",
-                        error=f"Unknown action type: {action.action_type}"
-                    )
-
-                transactions.append(result)
-
-                if result.status == "success":
-                    ctx.logger.info(f"   ✅ Success: {result.tx_hash[:16]}...")
-                    if result.gas_used:
-                        total_gas += result.gas_used
-                        ctx.logger.info(f"   ⛽ Gas: {result.gas_used:.6f} ETH")
-                else:
-                    ctx.logger.error(f"   ❌ Failed: {result.error}")
-
-            except Exception as e:
-                ctx.logger.error(f"   ❌ Execution error: {str(e)}")
-                transactions.append(TransactionResult(
-                    tx_hash="",
-                    chain=action.chain,
-                    status="failed",
-                    error=str(e)
-                ))
-
-        # Calculate execution time
-        end_time = datetime.now(timezone.utc)
-        execution_time = (end_time - start_time).total_seconds()
-
-        # Determine overall status
-        success_count = sum(1 for tx in transactions if tx.status == "success")
-        overall_status = "success" if success_count == len(transactions) else "partial"
-        if success_count == 0:
-            overall_status = "failed"
-
-        report = ExecutionReport(
-            strategy_id=strategy.strategy_id,
-            transactions=transactions,
-            total_gas_cost=total_gas,
-            execution_time=execution_time,
-            status=overall_status
-        )
-
-        ctx.logger.info(f"\n📊 Execution Complete:")
-        ctx.logger.info(f"   Status: {overall_status}")
-        ctx.logger.info(f"   Successful: {success_count}/{len(transactions)}")
-        ctx.logger.info(f"   Total Gas: {total_gas:.6f} ETH")
-        ctx.logger.info(f"   Time: {execution_time:.2f}s")
-
-        self.executed_strategies.append(strategy.strategy_id)
-
-        return report
-
-    def get_mev_protection_status(self) -> dict:
-        """Get MEV protection configuration"""
-        return {
-            "enabled": True,
-            "methods": ["Flashbots RPC", "Private Mempool", "Slippage Protection"],
-            "max_slippage": "0.5%",
-            "front_run_protection": True
-        }
-
-
-# Initialize executor
-executor = SafeExecutor()
 
 
 @execution_agent.on_event("startup")
 async def startup(ctx: Context):
-    """Startup event handler"""
-    ctx.logger.info("=" * 60)
-    ctx.logger.info("Execution Agent started")
-    ctx.logger.info(f"Agent address: {execution_agent.address}")
-    ctx.logger.info("Safety features: ENABLED")
-
-    mev_status = executor.get_mev_protection_status()
-    ctx.logger.info(f"MEV Protection: {mev_status['enabled']}")
-    for method in mev_status['methods']:
-        ctx.logger.info(f"  • {method}")
-
-    ctx.logger.info(f"Environment: {config.ENVIRONMENT}")
-    ctx.logger.info("=" * 60)
+    """Agent startup event"""
+    logger.info("=" * 60)
+    logger.info("🚀 Execution Agent Starting")
+    logger.info("=" * 60)
+    logger.info(f"Agent Address: {ctx.agent.address}")
+    logger.info(f"Port: 8004")
+    logger.info(f"Coordinator: {config.COORDINATOR_ADDRESS}")
+    logger.info("=" * 60)
 
 
-@execution_agent.on_interval(period=120.0)
-async def monitor_execution(ctx: Context):
-    """Monitor execution status"""
-    ctx.logger.info(f"🔒 Execution Agent ready - {len(executor.executed_strategies)} strategies executed")
+@execution_agent.on_message(model=ExecutionRequest)
+async def handle_execution_request(ctx: Context, sender: str, msg: ExecutionRequest):
+    """
+    Handle execution request from Portfolio Coordinator
 
-    # In production, would:
-    # - Listen for ApprovedStrategy messages from Coordinator
-    # - Execute transactions safely with MEV protection
-    # - Send ExecutionReport back to Coordinator and Performance Tracker
-    # - Handle transaction failures and rollbacks
+    Process:
+    1. Receive approved strategy
+    2. Prepare transactions for each allocation
+    3. Execute transactions on respective chains
+    4. Monitor transaction status
+    5. Return execution report
+
+    NOTE: This is a SIMULATION for the hackathon.
+    In production, this would integrate with Web3 providers:
+    - ethers.js / web3.py for EVM chains
+    - @solana/web3.js for Solana
+    - Actual wallet signing and transaction broadcasting
+    """
+    logger.info("=" * 60)
+    logger.info(f"📨 Received Execution Request: {msg.request_id}")
+    logger.info(f"   From: {sender}")
+    logger.info(f"   User: {msg.user_id}")
+    logger.info(f"   Wallet: {msg.user_wallet}")
+    logger.info(f"   Allocations: {len(msg.strategy.allocations)}")
+    logger.info(f"   Max Slippage: {msg.max_slippage}%")
+    logger.info("=" * 60)
+
+    try:
+        start_time = datetime.now(timezone.utc)
+
+        # Execute transactions (simulated for hackathon)
+        transactions = await _execute_transactions(msg)
+
+        end_time = datetime.now(timezone.utc)
+        execution_time = (end_time - start_time).total_seconds()
+
+        # Calculate total gas cost
+        total_gas = sum(tx.gas_used or 0 for tx in transactions)
+        # Convert to USD (assuming ETH = $2000)
+        total_gas_usd = total_gas * 2000
+
+        # Determine overall status
+        confirmed_count = sum(1 for tx in transactions if tx.status == "confirmed")
+        if confirmed_count == len(transactions):
+            status = "success"
+        elif confirmed_count > 0:
+            status = "partial"
+        else:
+            status = "failed"
+
+        # Create response
+        response = ExecutionResponse(
+            request_id=msg.request_id,
+            user_id=msg.user_id,
+            status=status,
+            transactions=transactions,
+            total_gas_cost=total_gas_usd,
+            execution_time_seconds=execution_time,
+            errors=[]
+        )
+
+        # Send response back to coordinator
+        await ctx.send(sender, response)
+
+        logger.info(f"✅ Sent Execution Response: {msg.request_id}")
+        logger.info(f"   Status: {status}")
+        logger.info(f"   Transactions: {len(transactions)}")
+        logger.info(f"   Total Gas: ${total_gas_usd:.4f}")
+        logger.info(f"   Execution Time: {execution_time:.2f}s")
+
+    except Exception as e:
+        logger.error(f"❌ Error executing transactions: {str(e)}")
+        # Send error response
+        error_response = ExecutionResponse(
+            request_id=msg.request_id,
+            user_id=msg.user_id,
+            status="failed",
+            transactions=[],
+            total_gas_cost=0.0,
+            execution_time_seconds=0.0,
+            errors=[str(e)]
+        )
+        await ctx.send(sender, error_response)
 
 
-# Message handler for production
-# @execution_agent.on_message(model=ApprovedStrategy)
-# async def handle_approved_strategy(ctx: Context, sender: str, msg: ApprovedStrategy):
-#     """Execute approved strategy"""
-#     ctx.logger.info(f"Received approved strategy from {sender}")
-#
-#     report = await executor.execute_strategy(msg.strategy, ctx)
-#
-#     # Send report back
-#     await ctx.send(sender, report)
-#
-#     # Notify Performance Tracker
-#     if config.TRACKER_ADDRESS:
-#         await ctx.send(config.TRACKER_ADDRESS, report)
+async def _execute_transactions(msg: ExecutionRequest) -> List[TransactionDetail]:
+    """
+    Execute transactions for each allocation
+
+    SIMULATION MODE for hackathon:
+    - Generates mock transaction hashes
+    - Simulates transaction confirmation
+    - Returns realistic transaction details
+
+    PRODUCTION MODE would:
+    - Connect to Web3 providers (Infura, Alchemy, etc.)
+    - Sign transactions with user's wallet
+    - Broadcast to blockchain networks
+    - Monitor transaction status
+    - Handle reverts and failures
+    """
+    transactions = []
+
+    for i, allocation in enumerate(msg.strategy.allocations):
+        logger.info(f"   Executing {i+1}/{len(msg.strategy.allocations)}: "
+                   f"{allocation.protocol} on {allocation.chain}")
+
+        # Simulate transaction execution
+        # In production, this would be actual blockchain interaction
+        tx = await _simulate_transaction(
+            allocation=allocation,
+            user_wallet=msg.user_wallet,
+            max_slippage=msg.max_slippage
+        )
+
+        transactions.append(tx)
+
+        # Simulate network delay
+        await asyncio.sleep(0.1)
+
+    return transactions
+
+
+async def _simulate_transaction(
+    allocation: AllocationItem,
+    user_wallet: str,
+    max_slippage: float
+) -> TransactionDetail:
+    """
+    Simulate a single transaction
+
+    In production, this would:
+    1. Get protocol contract addresses
+    2. Encode transaction data (deposit, swap, etc.)
+    3. Estimate gas
+    4. Sign with user's wallet
+    5. Broadcast transaction
+    6. Wait for confirmation
+    """
+
+    # Generate mock transaction hash
+    tx_hash = f"0x{uuid4().hex}"
+
+    # Determine action type based on protocol
+    action = "deposit"  # Could be deposit, swap, bridge, etc.
+
+    # Simulate gas used based on chain
+    gas_costs = {
+        "ethereum": 0.008,
+        "bsc": 0.0008,
+        "polygon": 0.0004,
+        "arbitrum": 0.0015,
+        "solana": 0.00008
+    }
+    gas_used = gas_costs.get(allocation.chain.lower(), 0.005)
+
+    # Simulate 95% success rate
+    import random
+    status = "confirmed" if random.random() > 0.05 else "failed"
+
+    return TransactionDetail(
+        tx_hash=tx_hash,
+        chain=allocation.chain,
+        protocol=allocation.protocol,
+        action=action,
+        amount=allocation.amount,
+        status=status,
+        gas_used=gas_used,
+        timestamp=datetime.now(timezone.utc).isoformat()
+    )
 
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("YieldSwarm AI - Execution Agent")
-    print("=" * 60)
-    print(f"Agent Address: {execution_agent.address}")
-    print(f"Port: {config.EXECUTION_PORT}")
-    print("\n🔒 Safety Features:")
-    mev = executor.get_mev_protection_status()
-    for method in mev['methods']:
-        print(f"  ✓ {method}")
-    print(f"\n⚙️  Environment: {config.ENVIRONMENT}")
-    print("=" * 60)
-    print("\n🚀 Starting execution agent...\n")
-
+    logger.info("\n🚀 Starting Execution Agent...\n")
     execution_agent.run()
