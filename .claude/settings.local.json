@@ -50,7 +50,14 @@
       "Bash(do echo -n \"Port $port: \")",
       "Bash(netstat:*)",
       "Bash(sort:*)",
-      "Bash(ss:*)"
+      "Bash(ss:*)",
+      "Bash(for port in 8001 8002 8003)",
+      "Bash(for port in 3000 8000 8080)",
+      "Bash(npm run build)",
+      "Bash(./start_all_agents.sh:*)",
+      "Bash(for log in logs/*.log)",
+      "Bash(tail:*)",
+      "Bash(./check_system_status.sh:*)"
     ],
     "deny": [],
     "ask": []

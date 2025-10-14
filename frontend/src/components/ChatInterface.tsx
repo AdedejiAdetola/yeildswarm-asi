@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import '../styles/ChatInterface.css'
+import AllocationChart from './AllocationChart'
 
 interface Message {
   id: string
@@ -175,6 +176,11 @@ export default function ChatInterface() {
           ❓ Help
         </button>
       </div>
+
+      {/* Show allocation chart if there are investment messages */}
+      {messages.some(m => m.text.toLowerCase().includes('invest') && m.sender === 'agent') && (
+        <AllocationChart />
+      )}
     </div>
   )
 }

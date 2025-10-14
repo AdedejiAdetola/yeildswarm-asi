@@ -55,15 +55,45 @@ export default function AgentStatus() {
     }
   ])
 
-  // Simulate agent activity
+  // Fetch real agent status from backend
   useEffect(() => {
+    const fetchAgentStatus = async () => {
+      try {
+        const response = await fetch('/api/agents/status')
+        if (response.ok) {
+          const data = await response.json()
+          // Update agents with real status
+          setAgents(prev => prev.map(agent => {
+            const realStatus = data[agent.name.toLowerCase().replace(/\s+/g, '_')]
+            if (realStatus) {
+              return {
+                ...agent,
+                status: realStatus.online ? 'online' : 'offline',
+                lastActivity: realStatus.lastActivity || agent.lastActivity
+              }
+            }
+            return agent
+          }))
+        }
+      } catch (error) {
+        // Keep simulated status if backend is unavailable
+        console.log('Using simulated agent status')
+      }
+    }
+
+    // Fetch initially
+    fetchAgentStatus()
+
+    // Poll every 5 seconds
     const interval = setInterval(() => {
+      fetchAgentStatus()
+      // Also simulate activity animation
       setAgents(prev => prev.map(agent => ({
         ...agent,
-        status: Math.random() > 0.7 ? 'busy' : 'online',
+        status: agent.status === 'offline' ? 'offline' : (Math.random() > 0.7 ? 'busy' : 'online'),
         tasksCompleted: agent.tasksCompleted + (Math.random() > 0.5 ? 1 : 0)
       })))
-    }, 3000)
+    }, 5000)
 
     return () => clearInterval(interval)
   }, [])

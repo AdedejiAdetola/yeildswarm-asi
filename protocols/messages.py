@@ -35,7 +35,6 @@ class OpportunityRequest(BaseModel):
     chains: List[Chain] = Field(..., description="Chains to scan")
     min_apy: float = Field(default=0.0, description="Minimum APY threshold (%)")
     max_risk_score: float = Field(default=10.0, description="Maximum risk score (0-10)")
-    user_id: str = Field(..., description="User identifier")
 
 
 class Opportunity(BaseModel):
@@ -62,16 +61,19 @@ class OpportunityResponse(BaseModel):
 class MeTTaQueryRequest(BaseModel):
     """Request to MeTTa Knowledge Agent"""
     request_id: str = Field(..., description="Unique request identifier")
-    query_type: str = Field(..., description="Query type: find_protocols, assess_risk, optimize_allocation")
-    parameters: Dict[str, Any] = Field(..., description="Query parameters")
+    opportunities: List[Opportunity] = Field(..., description="Opportunities to analyze")
+    risk_level: str = Field(..., description="Risk level: conservative, moderate, aggressive")
+    amount: float = Field(..., description="Investment amount")
+    chains: List[Chain] = Field(..., description="Preferred chains")
 
 
 class MeTTaQueryResponse(BaseModel):
     """Response from MeTTa Knowledge Agent"""
     request_id: str = Field(..., description="Matches request ID")
-    result: Dict[str, Any] = Field(..., description="Query result")
-    reasoning: str = Field(..., description="Explainable AI reasoning for the result")
+    recommended_protocols: List[str] = Field(..., description="List of recommended protocol names")
+    reasoning: str = Field(..., description="Explainable AI reasoning for the recommendations")
     confidence: float = Field(default=0.85, description="Confidence score (0-1)")
+    risk_assessments: Optional[Dict[str, float]] = Field(default=None, description="Risk scores per protocol")
 
 
 # ===== PORTFOLIO COORDINATOR <-> STRATEGY ENGINE =====
@@ -79,33 +81,31 @@ class MeTTaQueryResponse(BaseModel):
 class StrategyRequest(BaseModel):
     """Request from Portfolio Coordinator to Strategy Engine"""
     request_id: str = Field(..., description="Unique request identifier")
-    user_id: str = Field(..., description="User identifier")
     amount: float = Field(..., description="Investment amount")
     currency: str = Field(default="ETH", description="Currency (ETH, USDC, etc.)")
-    risk_level: RiskLevel = Field(..., description="Risk tolerance")
-    preferred_chains: List[Chain] = Field(..., description="Preferred blockchain networks")
+    risk_level: str = Field(..., description="Risk level: conservative, moderate, aggressive")
     opportunities: List[Opportunity] = Field(..., description="Available opportunities from scanner")
-    metta_insights: Dict[str, Any] = Field(..., description="Insights from MeTTa Knowledge Agent")
+    recommended_protocols: List[str] = Field(..., description="Recommended protocols from MeTTa")
+    chains: List[Chain] = Field(..., description="Preferred blockchain networks")
 
 
 class AllocationItem(BaseModel):
     """Single allocation in a strategy"""
     protocol: str = Field(..., description="Protocol name")
-    chain: Chain = Field(..., description="Blockchain network")
+    chain: str = Field(..., description="Blockchain network")
     amount: float = Field(..., description="Amount to allocate")
     percentage: float = Field(..., description="Percentage of total portfolio (0-100)")
     expected_apy: float = Field(..., description="Expected APY (%)")
-    risk_score: float = Field(..., description="Risk score (0-10)")
+    risk_score: float = Field(default=5.0, description="Risk score (0-10)")
 
 
 class StrategyResponse(BaseModel):
     """Response from Strategy Engine to Portfolio Coordinator"""
     request_id: str = Field(..., description="Matches request ID")
-    user_id: str = Field(..., description="User identifier")
     allocations: List[AllocationItem] = Field(..., description="Recommended allocations")
-    total_amount: float = Field(..., description="Total amount to invest")
-    expected_portfolio_apy: float = Field(..., description="Expected weighted average APY (%)")
-    portfolio_risk_score: float = Field(..., description="Portfolio risk score (0-10)")
+    expected_apy: float = Field(..., description="Expected weighted average APY (%)")
+    risk_score: float = Field(..., description="Portfolio risk score (0-10)")
+    estimated_gas_cost: float = Field(..., description="Estimated gas cost in ETH")
     reasoning: str = Field(..., description="Strategy reasoning and justification")
     timestamp: str = Field(..., description="ISO timestamp")
 
