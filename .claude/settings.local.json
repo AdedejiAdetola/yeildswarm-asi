@@ -59,7 +59,12 @@
       "Bash(tail:*)",
       "Bash(./check_system_status.sh:*)",
       "Bash(rm:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "WebFetch(domain:asi1.ai)",
+      "Bash(/home/grey/web3/yieldswarm-asi/venv/bin/python -c \"from uagents_core.utils.registration import register_chat_agent; print(''✅ uagents-core is installed'')\")",
+      "Bash(/home/grey/web3/yieldswarm-asi/venv/bin/python:*)",
+      "Bash(for:*)",
+      "Bash(do)"
     ],
     "deny": [],
     "ask": []
