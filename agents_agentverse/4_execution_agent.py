@@ -63,11 +63,11 @@ class ExecutionResponse(BaseModel):
     errors: List[str] = []
 
 # ===== CONFIGURATION =====
-EXECUTION_SEED = "execution-dev-seed-yieldswarm"
+EXECUTION_SEED = process.env.EXECUTION_SEED
 EXECUTION_PORT = 8004
 
 # ASI:One API Configuration
-ASI_ONE_API_KEY = "sk_784c488384e043f38c0ae5c0e69b12d689b15089c11347b38384a1a8d5934d0c"
+ASI_ONE_API_KEY = process.env.ASI_ONE_API_KEY
 
 # ===== AGENT INITIALIZATION =====
 try:
@@ -81,11 +81,11 @@ except NameError:
         # NOTE: No endpoint for Agentverse - auto-configured
     )
 
-# Create chat protocol for ASI:One compatibility
-chat_protocol = Protocol(spec=chat_protocol_spec)
+# # Create chat protocol for ASI:One compatibility
+# chat_protocol = Protocol(spec=chat_protocol_spec)
 
-# Include chat protocol with manifest publishing for ASI:One compatibility
-execution_agent.include(chat_protocol, publish_manifest=True)
+# # Include chat protocol with manifest publishing for ASI:One compatibility
+# execution_agent.include(chat_protocol, publish_manifest=True)
 
 # ===== MESSAGE HANDLER =====
 

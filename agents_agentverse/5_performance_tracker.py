@@ -47,11 +47,11 @@ class PerformanceResponse(BaseModel):
     timestamp: str
 
 # ===== CONFIGURATION =====
-TRACKER_SEED = "tracker-dev-seed-yieldswarm"
+TRACKER_SEED = process.env.TRACKER_SEED
 TRACKER_PORT = 8005
 
 # ASI:One API Configuration
-ASI_ONE_API_KEY = "sk_784c488384e043f38c0ae5c0e69b12d689b15089c11347b38384a1a8d5934d0c"
+ASI_ONE_API_KEY = process.env.ASI_ONE_API_KEY
 
 # Simulated portfolio data storage
 portfolio_data: Dict[str, List[PositionDetail]] = {}
@@ -68,11 +68,11 @@ except NameError:
         # NOTE: No endpoint for Agentverse - auto-configured
     )
 
-# Create chat protocol for ASI:One compatibility
-chat_protocol = Protocol(spec=chat_protocol_spec)
+# # Create chat protocol for ASI:One compatibility
+# chat_protocol = Protocol(spec=chat_protocol_spec)
 
-# Include chat protocol with manifest publishing for ASI:One compatibility
-tracker_agent.include(chat_protocol, publish_manifest=True)
+# # Include chat protocol with manifest publishing for ASI:One compatibility
+# tracker_agent.include(chat_protocol, publish_manifest=True)
 
 # ===== MESSAGE HANDLER =====
 
