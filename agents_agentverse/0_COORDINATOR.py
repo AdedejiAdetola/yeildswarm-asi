@@ -19,7 +19,7 @@ import re
 import json
 import base64
 from pydantic import BaseModel, Field
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 from enum import Enum
 from openai import OpenAI
 
@@ -69,6 +69,7 @@ class MeTTaQueryResponse(BaseModel):
     recommended_protocols: List[str]
     reasoning: str
     confidence: float = 0.85
+    risk_assessments: Optional[Dict[str, float]] = None
 
 class StrategyRequest(BaseModel):
     request_id: str
@@ -162,6 +163,19 @@ async def handle_user_request(ctx: Context, sender: str, msg: ChatMessage):
             user_message = content.text
             ctx.logger.info(f"💬 User message: {user_message}")
 
+            # Validate input first
+            validation_result = validate_user_input(user_message)
+            if not validation_result["valid"]:
+                # Send helpful guidance message
+                guidance_msg = ChatMessage(
+                    timestamp=datetime.now(timezone.utc),
+                    msg_id=uuid4(),
+                    content=[TextContent(type="text", text=validation_result["message"])]
+                )
+                await ctx.send(sender, guidance_msg)
+                ctx.logger.info(f"⚠️ Invalid input detected, sent guidance")
+                return
+
             # Parse the request
             parsed = parse_user_message(user_message)
 
@@ -214,10 +228,16 @@ async def handle_scanner_response(ctx: Context, sender: str, msg: OpportunityRes
         ctx.logger.error(f"❌ Failed to decode context from request_id")
         return
 
+    # Store opportunities in context for later use
+    context["opportunities"] = [opp.model_dump() for opp in msg.opportunities]
+
+    # Re-encode context with opportunities
+    updated_request_id = base64.b64encode(json.dumps(context).encode()).decode()
+
     # STEP 2: Send to MeTTa for analysis
     ctx.logger.info(f"🧠 Sending to MeTTa for analysis...")
     metta_request = MeTTaQueryRequest(
-        request_id=msg.request_id,
+        request_id=updated_request_id,
         opportunities=msg.opportunities,
         risk_level=context["risk_level"],
         amount=context["amount"],
@@ -244,22 +264,30 @@ async def handle_metta_response(ctx: Context, sender: str, msg: MeTTaQueryRespon
         # STEP 3: Send to Strategy Engine
         ctx.logger.info(f"⚡ Requesting strategy from Engine...")
 
-        # Need to get opportunities from somewhere - they're in the MeTTaQueryRequest that was sent
-        # For now, use empty list and let Strategy work with recommended protocols
+        # Reconstruct opportunities from context
+        opportunities = []
+        if "opportunities" in context:
+            for opp_dict in context["opportunities"]:
+                opportunities.append(Opportunity(**opp_dict))
+
+        ctx.logger.info(f"📊 Sending {len(opportunities)} opportunities to Strategy Engine")
+
         strategy_request = StrategyRequest(
             request_id=msg.request_id,
             amount=context["amount"],
             currency=context["currency"],
             risk_level=context["risk_level"],
-            opportunities=[],  # Strategy will need to handle this
+            opportunities=opportunities,
             recommended_protocols=msg.recommended_protocols,
             chains=[Chain(c) for c in context["chains"]]
         )
 
         await ctx.send(STRATEGY_ADDRESS, strategy_request)
-        ctx.logger.info(f"✅ Strategy request sent")
+        ctx.logger.info(f"✅ Strategy request sent to {STRATEGY_ADDRESS}")
     except Exception as e:
         ctx.logger.error(f"❌ Error in handle_metta_response: {str(e)}")
+        import traceback
+        ctx.logger.error(f"Traceback: {traceback.format_exc()}")
 
 @coordinator.on_message(model=StrategyResponse)
 async def handle_strategy_response(ctx: Context, sender: str, msg: StrategyResponse):
@@ -309,6 +337,118 @@ async def handle_strategy_response(ctx: Context, sender: str, msg: StrategyRespo
 
     await ctx.send(user_sender, response_msg)
     ctx.logger.info(f"📤 Sent strategy to user")
+
+def validate_user_input(text: str) -> dict:
+    """
+    Validate user input before processing
+
+    Returns:
+        dict with 'valid' (bool) and 'message' (str) keys
+    """
+    text_lower = text.lower().strip()
+
+    # Empty or too short
+    if len(text_lower) < 3:
+        return {
+            "valid": False,
+            "message": """👋 Hello! I'm YieldSwarm AI, your DeFi portfolio optimizer.
+
+I can help you create optimized yield strategies across multiple chains.
+
+**How to use me:**
+• "Invest 10 ETH with moderate risk"
+• "Invest 5 ETH on Ethereum with conservative risk"
+• "Invest 20 ETH with aggressive risk on Polygon"
+
+**Risk levels:** conservative, moderate, aggressive
+**Supported chains:** Ethereum, Polygon, Solana, BSC, Arbitrum
+
+What would you like to invest?"""
+        }
+
+    # Common greetings and casual inputs
+    greetings = ['hi', 'hello', 'hey', 'greetings', 'howdy', 'sup', 'yo']
+    if any(text_lower.startswith(g) for g in greetings) or text_lower in greetings:
+        return {
+            "valid": False,
+            "message": """👋 Hello! Great to meet you!
+
+I'm YieldSwarm AI - I help optimize DeFi portfolios using 6 specialized AI agents.
+
+**Try these commands:**
+• "Invest 10 ETH with moderate risk"
+• "Invest 5 ETH with conservative risk on Ethereum"
+• "Invest 50 ETH with aggressive risk"
+
+Ready to optimize your yield? Tell me how much you'd like to invest!"""
+        }
+
+    # Help requests
+    help_keywords = ['help', 'how', 'what can you', 'guide', 'instructions', 'commands', '?']
+    if any(keyword in text_lower for keyword in help_keywords) and 'invest' not in text_lower:
+        return {
+            "valid": False,
+            "message": """📚 **YieldSwarm AI - Usage Guide**
+
+I analyze 50+ DeFi protocols across 5 chains and create optimized portfolio strategies.
+
+**Basic Format:**
+"Invest [AMOUNT] [CURRENCY] with [RISK LEVEL]"
+
+**Examples:**
+• "Invest 10 ETH with moderate risk"
+• "Invest 5 ETH with conservative risk on Ethereum"
+• "Invest 20 USDC with aggressive risk"
+• "Invest 15 ETH on Polygon with low risk"
+
+**Parameters:**
+• **Amount:** Any number (e.g., 1, 10, 50)
+• **Currency:** ETH, USDC, USDT, BNB
+• **Risk Level:**
+  - Conservative: Low risk, stable yields (2-6% APY)
+  - Moderate: Balanced risk/reward (4-12% APY)
+  - Aggressive: High risk, maximum yields (8-20% APY)
+• **Chains (optional):** Ethereum, Polygon, Solana, BSC, Arbitrum
+
+**What I do:**
+1. Scan opportunities across all chains
+2. Use MeTTa AI for symbolic reasoning
+3. Generate optimized allocation strategy
+4. Provide gas-efficient execution plan
+
+Ready to start? Tell me your investment parameters!"""
+        }
+
+    # Random gibberish (no investment-related keywords)
+    investment_keywords = ['invest', 'eth', 'usdc', 'usdt', 'bnb', 'defi', 'yield', 'apy',
+                          'stake', 'farm', 'pool', 'protocol', 'risk', 'portfolio',
+                          'strategy', 'allocat', 'ethereum', 'polygon', 'solana', 'bsc', 'arbitrum']
+
+    has_investment_keyword = any(keyword in text_lower for keyword in investment_keywords)
+
+    # Check if text has numbers (amount indication)
+    has_number = any(char.isdigit() for char in text)
+
+    if not has_investment_keyword and not has_number:
+        return {
+            "valid": False,
+            "message": """🤔 I didn't quite understand that.
+
+I'm specialized in DeFi portfolio optimization. Here's how to use me:
+
+**Example requests:**
+• "Invest 10 ETH with moderate risk"
+• "Invest 5 ETH with conservative risk"
+• "Invest 20 ETH with aggressive risk on Polygon"
+
+**Need help?** Just ask: "How do I use this?" or "Show me examples"
+
+What would you like to invest?"""
+        }
+
+    # Looks like a valid investment request
+    return {"valid": True, "message": ""}
+
 
 def parse_user_message(text: str) -> dict:
     """Parse natural language investment request"""
@@ -431,7 +571,7 @@ Strategy Data:
         llm_response = response.choices[0].message.content
 
         # Add attribution footer
-        footer = "\n\n---\n*Powered by 6 specialized AI agents coordinated via YieldSwarm AI 🐝*"
+        footer = "\n\n---\n*Powered by 4 specialized AI agents coordinated via YieldSwarm AI 🐝*"
 
         return llm_response + footer
 

@@ -120,6 +120,127 @@
    (Security-Rating High)
    (Impermanent-Loss-Risk Medium))
 
+; QuickSwap - Polygon DEX
+(= (Protocol QuickSwap)
+   (Chains Polygon)
+   (Type DEX)
+   (Risk-Score 4.0)
+   (Historical-APY 9.75)
+   (TVL 350000000)
+   (Smart-Contract-Audited True)
+   (Security-Rating Medium)
+   (Impermanent-Loss-Risk High))
+
+; Yearn Finance - Yield Aggregator
+(= (Protocol Yearn-Finance)
+   (Chains Ethereum Polygon Arbitrum)
+   (Type Yield-Aggregator)
+   (Risk-Score 3.2)
+   (Historical-APY 7.8)
+   (TVL 1500000000)
+   (Smart-Contract-Audited True)
+   (Security-Rating High)
+   (Impermanent-Loss-Risk Low))
+
+; Convex Finance - Curve Booster
+(= (Protocol Convex)
+   (Chains Ethereum)
+   (Type Yield-Booster)
+   (Risk-Score 3.5)
+   (Historical-APY 8.5)
+   (TVL 2300000000)
+   (Smart-Contract-Audited True)
+   (Security-Rating High)
+   (Impermanent-Loss-Risk Low))
+
+; Maker DAO - Stablecoin Protocol
+(= (Protocol MakerDAO)
+   (Chains Ethereum)
+   (Type Lending-Stablecoin)
+   (Risk-Score 2.0)
+   (Historical-APY 3.5)
+   (TVL 6800000000)
+   (Smart-Contract-Audited True)
+   (Security-Rating High)
+   (Impermanent-Loss-Risk None))
+
+; Lido - Liquid Staking
+(= (Protocol Lido)
+   (Chains Ethereum Polygon Solana)
+   (Type Liquid-Staking)
+   (Risk-Score 2.3)
+   (Historical-APY 4.5)
+   (TVL 14000000000)
+   (Smart-Contract-Audited True)
+   (Security-Rating High)
+   (Impermanent-Loss-Risk None))
+
+; Rocket Pool - ETH Staking
+(= (Protocol Rocket-Pool)
+   (Chains Ethereum)
+   (Type Liquid-Staking)
+   (Risk-Score 2.6)
+   (Historical-APY 4.2)
+   (TVL 2100000000)
+   (Smart-Contract-Audited True)
+   (Security-Rating High)
+   (Impermanent-Loss-Risk None))
+
+; Stargate - Bridge Protocol
+(= (Protocol Stargate)
+   (Chains Ethereum Polygon Arbitrum BSC)
+   (Type Bridge-Liquidity)
+   (Risk-Score 4.5)
+   (Historical-APY 11.5)
+   (TVL 680000000)
+   (Smart-Contract-Audited True)
+   (Security-Rating Medium)
+   (Impermanent-Loss-Risk Medium))
+
+; Frax Finance - Stablecoin Protocol
+(= (Protocol Frax)
+   (Chains Ethereum Polygon Arbitrum)
+   (Type Stablecoin-Lending)
+   (Risk-Score 3.0)
+   (Historical-APY 5.5)
+   (TVL 1100000000)
+   (Smart-Contract-Audited True)
+   (Security-Rating High)
+   (Impermanent-Loss-Risk Low))
+
+; Trader Joe - Avalanche DEX (extended to Arbitrum)
+(= (Protocol Trader-Joe)
+   (Chains Arbitrum)
+   (Type DEX)
+   (Risk-Score 4.8)
+   (Historical-APY 13.5)
+   (TVL 420000000)
+   (Smart-Contract-Audited True)
+   (Security-Rating Medium)
+   (Impermanent-Loss-Risk High))
+
+; Synapse Protocol - Cross-Chain Bridge
+(= (Protocol Synapse)
+   (Chains Ethereum Polygon Arbitrum BSC)
+   (Type Bridge-Yield)
+   (Risk-Score 5.2)
+   (Historical-APY 14.0)
+   (TVL 380000000)
+   (Smart-Contract-Audited True)
+   (Security-Rating Medium)
+   (Impermanent-Loss-Risk Medium))
+
+; Beefy Finance - Yield Optimizer
+(= (Protocol Beefy)
+   (Chains Polygon BSC Arbitrum)
+   (Type Yield-Optimizer)
+   (Risk-Score 4.2)
+   (Historical-APY 10.5)
+   (TVL 550000000)
+   (Smart-Contract-Audited True)
+   (Security-Rating Medium)
+   (Impermanent-Loss-Risk Medium))
+
 ; ===== RISK ASSESSMENT RULES =====
 
 (= (Assess-Risk $Protocol $Risk-Level)
