@@ -392,6 +392,9 @@ Built with ❤️ using the ASI Alliance Technology Stack:
 - [SingularityNET](https://singularitynet.io) - MeTTa/Hyperon
 - [ASI Alliance](https://superintelligence.io) - Unified AI ecosystem
 
+- [ ] Innovation Lab badge: ![Innovation Lab](https://img.shields.io/badge/innovationlab-3D8BD3)
+- [ ] Hackathon badge: ![Hackathon](https://img.shields.io/badge/hackathon-5F43F1)
+
 **Special thanks to the ASI Alliance and Fetch.ai Innovation Lab for organizing this hackathon!**
 
 ---
