@@ -42,11 +42,11 @@ class MeTTaQueryResponse(BaseModel):
     risk_assessments: Optional[Dict[str, float]] = None
 
 # ===== CONFIGURATION =====
-METTA_SEED = "metta-dev-seed-yieldswarm"
+METTA_SEED = process.env.METTA_SEED
 METTA_PORT = 8002
 
 # ASI:One API Configuration
-ASI_ONE_API_KEY = "sk_784c488384e043f38c0ae5c0e69b12d689b15089c11347b38384a1a8d5934d0c"
+ASI_ONE_API_KEY = process.env.ASI_ONE_API_KEY
 
 # ===== METTA KNOWLEDGE BASE (Embedded) =====
 # 22 DeFi protocols with full specifications
@@ -256,11 +256,6 @@ except NameError:
         # NOTE: No endpoint for Agentverse - auto-configured
     )
 
-# Create chat protocol for ASI:One compatibility
-chat_protocol = Protocol(spec=chat_protocol_spec)
-
-# Include chat protocol with manifest publishing for ASI:One compatibility
-metta_agent.include(chat_protocol, publish_manifest=True)
 
 # ===== MESSAGE HANDLER =====
 

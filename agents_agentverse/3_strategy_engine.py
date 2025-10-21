@@ -54,11 +54,11 @@ class StrategyResponse(BaseModel):
     timestamp: str
 
 # ===== CONFIGURATION =====
-STRATEGY_SEED = "strategy-dev-seed-yieldswarm"
+STRATEGY_SEED = process.env.STRATEGY_SEED
 STRATEGY_PORT = 8003
 
 # ASI:One API Configuration
-ASI_ONE_API_KEY = "sk_784c488384e043f38c0ae5c0e69b12d689b15089c11347b38384a1a8d5934d0c"
+ASI_ONE_API_KEY = process.env.ASI_ONE_API_KEY
 
 # Gas costs per chain (in ETH equivalent)
 GAS_COSTS = {
@@ -87,12 +87,6 @@ except NameError:
         mailbox=True,
         # NOTE: No endpoint for Agentverse - auto-configured
     )
-
-# Create chat protocol for ASI:One compatibility
-chat_protocol = Protocol(spec=chat_protocol_spec)
-
-# Include chat protocol with manifest publishing for ASI:One compatibility
-strategy_agent.include(chat_protocol, publish_manifest=True)
 
 # ===== MESSAGE HANDLER =====
 

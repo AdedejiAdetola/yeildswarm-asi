@@ -42,11 +42,11 @@ class OpportunityResponse(BaseModel):
     chains_scanned: List[Chain]
 
 # ===== CONFIGURATION =====
-SCANNER_SEED = "scanner-dev-seed-yieldswarm"
+SCANNER_SEED = process.env.SCANNER_SEED
 SCANNER_PORT = 8001
 
 # ASI:One API Configuration
-ASI_ONE_API_KEY = "sk_784c488384e043f38c0ae5c0e69b12d689b15089c11347b38384a1a8d5934d0c"
+ASI_ONE_API_KEY = process.env.ASI_ONE_API_KEY
 
 # ===== AGENT INITIALIZATION =====
 # Note: In Agentverse, use the preloaded 'agent' instance
@@ -64,13 +64,8 @@ except NameError:
         # NOTE: No endpoint for Agentverse - auto-configured
     )
 
-# Create chat protocol for ASI:One compatibility
-chat_protocol = Protocol(spec=chat_protocol_spec)
 
-# Include chat protocol with manifest publishing for ASI:One compatibility
-scanner.include(chat_protocol, publish_manifest=True)
 
-# ===== MOCK SCANNING FUNCTIONS =====
 
 async def scan_ethereum() -> List[Opportunity]:
     """Scan Ethereum for yield opportunities"""

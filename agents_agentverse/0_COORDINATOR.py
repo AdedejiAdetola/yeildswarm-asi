@@ -98,11 +98,11 @@ class StrategyResponse(BaseModel):
     timestamp: str
 
 # ===== CONFIGURATION =====
-COORDINATOR_SEED = "coordinator-dev-seed-yieldswarm"
+COORDINATOR_SEED = process.env.COORDINATOR_SEED
 
 # ASI:One API Configuration
 # NOTE: In Agentverse, add this as environment variable: ASI_ONE_API_KEY
-ASI_ONE_API_KEY = "sk_784c488384e043f38c0ae5c0e69b12d689b15089c11347b38384a1a8d5934d0c"
+ASI_ONE_API_KEY = process.env.ASI_ONE_API_KEY
 
 # Configure OpenAI client with ASI:One endpoint
 asi_client = OpenAI(
